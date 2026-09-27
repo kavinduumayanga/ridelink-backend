@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: fare-payment-service
+  data:
+    mongodb:
+      uri: ${PAYMENT_MONGODB_URI}
+
+server:
+  port: 8084
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+

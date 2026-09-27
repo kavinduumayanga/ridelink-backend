@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: account-service
+  data:
+    mongodb:
+      uri: ${ACCOUNT_MONGODB_URI}
+
+server:
+  port: 8081
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+

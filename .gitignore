@@ -1,0 +1,30 @@
+# Environment variables and local secrets
+.env
+.env.*
+!.env.example
+application-local.yml
+application-local.yaml
+application-secrets.yml
+application-secrets.yaml
+*.pem
+*.key
+
+# Maven build output
+target/
+
+# Logs
+*.log
+logs/
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+

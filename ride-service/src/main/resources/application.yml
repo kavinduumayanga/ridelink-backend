@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: ride-service
+  data:
+    mongodb:
+      uri: ${RIDE_MONGODB_URI}
+
+server:
+  port: 8083
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+

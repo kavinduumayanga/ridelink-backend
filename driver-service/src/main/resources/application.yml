@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: driver-service
+  data:
+    mongodb:
+      uri: ${DRIVER_MONGODB_URI}
+
+server:
+  port: 8082
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+

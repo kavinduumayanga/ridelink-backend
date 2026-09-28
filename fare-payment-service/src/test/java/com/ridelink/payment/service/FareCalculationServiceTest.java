@@ -4,6 +4,7 @@ import com.ridelink.payment.config.FareProperties;
 import com.ridelink.payment.domain.Fare;
 import com.ridelink.payment.domain.FareType;
 import com.ridelink.payment.dto.FareEstimateRequest;
+import com.ridelink.payment.dto.FareFinalRequest;
 import com.ridelink.payment.dto.FareResponse;
 import com.ridelink.payment.repository.FareRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -122,6 +123,63 @@ class FareCalculationServiceTest {
         FareEstimateRequest zeroDistanceReq = new FareEstimateRequest("ride-1", 0.0);
         assertThrows(IllegalArgumentException.class, () ->
                 fareCalculationService.estimateFare(zeroDistanceReq)
+        );
+    }
+
+    @Test
+    @DisplayName("Should calculate final fare, persist Fare document with FINAL type, and return complete FareResponse")
+    void testCalculateFinalFarePersistsAndReturnsResponse() {
+        com.ridelink.payment.dto.FareFinalRequest request = new com.ridelink.payment.dto.FareFinalRequest("ride-995", 13.2);
+
+        when(fareRepository.save(any(Fare.class))).thenAnswer(invocation -> {
+            Fare fare = invocation.getArgument(0);
+            fare.setId("generated-final-fare-id-456");
+            return fare;
+        });
+
+        FareResponse response = fareCalculationService.calculateFinalFare(request);
+
+        assertNotNull(response);
+        assertEquals("generated-final-fare-id-456", response.getFareId());
+        assertEquals("ride-995", response.getRideId());
+        assertEquals("FINAL", response.getFareType());
+        assertEquals(13.2, response.getDistanceKm());
+        assertEquals(200.00, response.getBaseFare());
+        assertEquals(50.00, response.getRatePerKm());
+        assertEquals(860.00, response.getTotalFare());
+
+        ArgumentCaptor<Fare> captor = ArgumentCaptor.forClass(Fare.class);
+        verify(fareRepository, times(1)).save(captor.capture());
+        Fare savedEntity = captor.getValue();
+        assertEquals("ride-995", savedEntity.getRideId());
+        assertEquals(FareType.FINAL, savedEntity.getFareType());
+        assertEquals(13.2, savedEntity.getDistanceKm());
+        assertEquals(200.00, savedEntity.getBaseFare());
+        assertEquals(50.00, savedEntity.getRatePerKm());
+        assertEquals(860.00, savedEntity.getTotalFare());
+        assertNotNull(savedEntity.getCreatedAt());
+    }
+
+    @Test
+    @DisplayName("Should throw exception when calculateFinalFare is called with null or invalid distance")
+    void testCalculateFinalFareNullOrInvalidDistance() {
+        assertThrows(IllegalArgumentException.class, () ->
+                fareCalculationService.calculateFinalFare(null)
+        );
+
+        com.ridelink.payment.dto.FareFinalRequest nullDistanceReq = new com.ridelink.payment.dto.FareFinalRequest("ride-1", null);
+        assertThrows(IllegalArgumentException.class, () ->
+                fareCalculationService.calculateFinalFare(nullDistanceReq)
+        );
+
+        com.ridelink.payment.dto.FareFinalRequest zeroDistanceReq = new com.ridelink.payment.dto.FareFinalRequest("ride-1", 0.0);
+        assertThrows(IllegalArgumentException.class, () ->
+                fareCalculationService.calculateFinalFare(zeroDistanceReq)
+        );
+
+        com.ridelink.payment.dto.FareFinalRequest negativeDistanceReq = new com.ridelink.payment.dto.FareFinalRequest("ride-1", -10.0);
+        assertThrows(IllegalArgumentException.class, () ->
+                fareCalculationService.calculateFinalFare(negativeDistanceReq)
         );
     }
 }

@@ -1,6 +1,7 @@
 package com.ridelink.payment.controller;
 
 import com.ridelink.payment.dto.FareEstimateRequest;
+import com.ridelink.payment.dto.FareFinalRequest;
 import com.ridelink.payment.dto.FareResponse;
 import com.ridelink.payment.service.FareCalculationService;
 import jakarta.validation.Valid;
@@ -23,6 +24,12 @@ public class FareController {
     @PostMapping("/estimate")
     public ResponseEntity<FareResponse> estimateFare(@Valid @RequestBody FareEstimateRequest request) {
         FareResponse response = fareCalculationService.estimateFare(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/final")
+    public ResponseEntity<FareResponse> calculateFinalFare(@Valid @RequestBody FareFinalRequest request) {
+        FareResponse response = fareCalculationService.calculateFinalFare(request);
         return ResponseEntity.ok(response);
     }
 }

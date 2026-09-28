@@ -2,6 +2,7 @@ package com.ridelink.payment.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ridelink.payment.dto.FareEstimateRequest;
+import com.ridelink.payment.dto.FareFinalRequest;
 import com.ridelink.payment.dto.FareResponse;
 import com.ridelink.payment.exception.GlobalExceptionHandler;
 import com.ridelink.payment.service.FareCalculationService;
@@ -111,5 +112,76 @@ class FareControllerTest {
                 .andExpect(jsonPath("$.status").value(400))
                 .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"))
                 .andExpect(jsonPath("$.path").value("/api/fares/estimate"));
+    }
+
+    @Test
+    @DisplayName("POST /api/fares/final should return 200 OK with final fare response")
+    void testCalculateFinalFareSuccess() throws Exception {
+        com.ridelink.payment.dto.FareFinalRequest request = new com.ridelink.payment.dto.FareFinalRequest("995c3d4e5f6a7b8c9d0e1f2a", 13.2);
+        FareResponse mockResponse = new FareResponse(
+                "bb6e5f6a7b8c9d0e1f2a3b4c",
+                "995c3d4e5f6a7b8c9d0e1f2a",
+                "FINAL",
+                13.2,
+                200.00,
+                50.00,
+                860.00
+        );
+
+        when(fareCalculationService.calculateFinalFare(any(com.ridelink.payment.dto.FareFinalRequest.class))).thenReturn(mockResponse);
+
+        mockMvc.perform(post("/api/fares/final")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fareId").value("bb6e5f6a7b8c9d0e1f2a3b4c"))
+                .andExpect(jsonPath("$.rideId").value("995c3d4e5f6a7b8c9d0e1f2a"))
+                .andExpect(jsonPath("$.fareType").value("FINAL"))
+                .andExpect(jsonPath("$.distanceKm").value(13.2))
+                .andExpect(jsonPath("$.baseFare").value(200.00))
+                .andExpect(jsonPath("$.ratePerKm").value(50.00))
+                .andExpect(jsonPath("$.totalFare").value(860.00));
+    }
+
+    @Test
+    @DisplayName("POST /api/fares/final with zero distance should return 400 VALIDATION_ERROR")
+    void testCalculateFinalFareZeroDistance() throws Exception {
+        com.ridelink.payment.dto.FareFinalRequest request = new com.ridelink.payment.dto.FareFinalRequest("995c3d4e5f6a7b8c9d0e1f2a", 0.0);
+
+        mockMvc.perform(post("/api/fares/final")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.path").value("/api/fares/final"));
+    }
+
+    @Test
+    @DisplayName("POST /api/fares/final with negative distance should return 400 VALIDATION_ERROR")
+    void testCalculateFinalFareNegativeDistance() throws Exception {
+        com.ridelink.payment.dto.FareFinalRequest request = new com.ridelink.payment.dto.FareFinalRequest("995c3d4e5f6a7b8c9d0e1f2a", -4.5);
+
+        mockMvc.perform(post("/api/fares/final")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.path").value("/api/fares/final"));
+    }
+
+    @Test
+    @DisplayName("POST /api/fares/final with blank rideId should return 400 VALIDATION_ERROR")
+    void testCalculateFinalFareBlankRideId() throws Exception {
+        com.ridelink.payment.dto.FareFinalRequest request = new com.ridelink.payment.dto.FareFinalRequest("   ", 13.2);
+
+        mockMvc.perform(post("/api/fares/final")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.path").value("/api/fares/final"));
     }
 }

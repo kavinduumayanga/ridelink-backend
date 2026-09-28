@@ -4,6 +4,8 @@ import com.ridelink.driver.domain.Driver;
 import com.ridelink.driver.domain.DriverAvailability;
 import com.ridelink.driver.dto.CreateDriverRequest;
 import com.ridelink.driver.dto.DriverResponse;
+import com.ridelink.driver.dto.UpdateAvailabilityRequest;
+import com.ridelink.driver.dto.UpdateLocationRequest;
 import com.ridelink.driver.exception.DuplicateResourceException;
 import com.ridelink.driver.exception.ResourceNotFoundException;
 import com.ridelink.driver.repository.DriverRepository;
@@ -39,6 +41,25 @@ public class DriverService {
         Driver driver = driverRepository.findById(driverId)
                 .orElseThrow(() -> new ResourceNotFoundException("Driver not found with id: " + driverId));
         return mapToDriverResponse(driver);
+    }
+
+    public DriverResponse updateAvailability(String driverId, UpdateAvailabilityRequest request) {
+        Driver driver = driverRepository.findById(driverId)
+                .orElseThrow(() -> new ResourceNotFoundException("Driver not found with id: " + driverId));
+
+        driver.setAvailability(request.getAvailability());
+        Driver updatedDriver = driverRepository.save(driver);
+        return mapToDriverResponse(updatedDriver);
+    }
+
+    public DriverResponse updateLocation(String driverId, UpdateLocationRequest request) {
+        Driver driver = driverRepository.findById(driverId)
+                .orElseThrow(() -> new ResourceNotFoundException("Driver not found with id: " + driverId));
+
+        driver.setLatitude(request.getLatitude());
+        driver.setLongitude(request.getLongitude());
+        Driver updatedDriver = driverRepository.save(driver);
+        return mapToDriverResponse(updatedDriver);
     }
 
     private DriverResponse mapToDriverResponse(Driver driver) {

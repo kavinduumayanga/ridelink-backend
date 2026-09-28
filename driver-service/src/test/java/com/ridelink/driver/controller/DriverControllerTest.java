@@ -6,6 +6,8 @@ import com.ridelink.driver.domain.DriverAvailability;
 import com.ridelink.driver.domain.VehicleType;
 import com.ridelink.driver.dto.CreateDriverRequest;
 import com.ridelink.driver.dto.DriverResponse;
+import com.ridelink.driver.dto.UpdateAvailabilityRequest;
+import com.ridelink.driver.dto.UpdateLocationRequest;
 import com.ridelink.driver.dto.VehicleRequest;
 import com.ridelink.driver.dto.VehicleResponse;
 import com.ridelink.driver.exception.DuplicateResourceException;
@@ -201,5 +203,167 @@ class DriverControllerTest {
                 .andExpect(jsonPath("$.model").value("Aqua"))
                 .andExpect(jsonPath("$.year").value(2023))
                 .andExpect(jsonPath("$.color").value("Silver"));
+    }
+
+    @Test
+    void testUpdateAvailability_Available_Success() throws Exception {
+        UpdateAvailabilityRequest request = new UpdateAvailabilityRequest(DriverAvailability.AVAILABLE);
+        DriverResponse response = new DriverResponse(
+                "driver-789",
+                "acc-123",
+                "DL-123456",
+                "Colombo",
+                DriverAvailability.AVAILABLE,
+                6.9271,
+                79.8612
+        );
+
+        when(driverService.updateAvailability(eq("driver-789"), any(UpdateAvailabilityRequest.class))).thenReturn(response);
+
+        mockMvc.perform(patch("/api/drivers/driver-789/availability")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.driverId").value("driver-789"))
+                .andExpect(jsonPath("$.availability").value("AVAILABLE"));
+    }
+
+    @Test
+    void testUpdateAvailability_Unavailable_Success() throws Exception {
+        UpdateAvailabilityRequest request = new UpdateAvailabilityRequest(DriverAvailability.UNAVAILABLE);
+        DriverResponse response = new DriverResponse(
+                "driver-789",
+                "acc-123",
+                "DL-123456",
+                "Colombo",
+                DriverAvailability.UNAVAILABLE,
+                6.9271,
+                79.8612
+        );
+
+        when(driverService.updateAvailability(eq("driver-789"), any(UpdateAvailabilityRequest.class))).thenReturn(response);
+
+        mockMvc.perform(patch("/api/drivers/driver-789/availability")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.driverId").value("driver-789"))
+                .andExpect(jsonPath("$.availability").value("UNAVAILABLE"));
+    }
+
+    @Test
+    void testUpdateAvailability_DriverNotFound() throws Exception {
+        UpdateAvailabilityRequest request = new UpdateAvailabilityRequest(DriverAvailability.AVAILABLE);
+
+        when(driverService.updateAvailability(eq("driver-999"), any(UpdateAvailabilityRequest.class)))
+                .thenThrow(new ResourceNotFoundException("Driver not found with id: driver-999"));
+
+        mockMvc.perform(patch("/api/drivers/driver-999/availability")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Driver not found with id: driver-999"));
+    }
+
+    @Test
+    void testUpdateAvailability_InvalidPayload() throws Exception {
+        mockMvc.perform(patch("/api/drivers/driver-789/availability")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"availability\":\"INVALID_STATUS\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void testUpdateLocation_Success() throws Exception {
+        UpdateLocationRequest request = new UpdateLocationRequest(6.9271, 79.8612);
+        DriverResponse response = new DriverResponse(
+                "driver-789",
+                "acc-123",
+                "DL-123456",
+                "Colombo",
+                DriverAvailability.AVAILABLE,
+                6.9271,
+                79.8612
+        );
+
+        when(driverService.updateLocation(eq("driver-789"), any(UpdateLocationRequest.class))).thenReturn(response);
+
+        mockMvc.perform(patch("/api/drivers/driver-789/location")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.driverId").value("driver-789"))
+                .andExpect(jsonPath("$.latitude").value(6.9271))
+                .andExpect(jsonPath("$.longitude").value(79.8612));
+    }
+
+    @Test
+    void testUpdateLocation_DriverNotFound() throws Exception {
+        UpdateLocationRequest request = new UpdateLocationRequest(6.9271, 79.8612);
+
+        when(driverService.updateLocation(eq("driver-999"), any(UpdateLocationRequest.class)))
+                .thenThrow(new ResourceNotFoundException("Driver not found with id: driver-999"));
+
+        mockMvc.perform(patch("/api/drivers/driver-999/location")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Driver not found with id: driver-999"));
+    }
+
+    @Test
+    void testUpdateLocation_InvalidLatitude_Above90() throws Exception {
+        UpdateLocationRequest request = new UpdateLocationRequest(91.0, 79.8612);
+
+        mockMvc.perform(patch("/api/drivers/driver-789/location")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void testUpdateLocation_InvalidLatitude_BelowMinus90() throws Exception {
+        UpdateLocationRequest request = new UpdateLocationRequest(-91.0, 79.8612);
+
+        mockMvc.perform(patch("/api/drivers/driver-789/location")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void testUpdateLocation_InvalidLongitude_Above180() throws Exception {
+        UpdateLocationRequest request = new UpdateLocationRequest(6.9271, 181.0);
+
+        mockMvc.perform(patch("/api/drivers/driver-789/location")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void testUpdateLocation_InvalidLongitude_BelowMinus180() throws Exception {
+        UpdateLocationRequest request = new UpdateLocationRequest(6.9271, -181.0);
+
+        mockMvc.perform(patch("/api/drivers/driver-789/location")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void testUpdateLocation_MissingFields() throws Exception {
+        mockMvc.perform(patch("/api/drivers/driver-789/location")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
     }
 }

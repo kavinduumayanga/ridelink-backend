@@ -4,6 +4,8 @@ import com.ridelink.driver.domain.Driver;
 import com.ridelink.driver.domain.DriverAvailability;
 import com.ridelink.driver.dto.CreateDriverRequest;
 import com.ridelink.driver.dto.DriverResponse;
+import com.ridelink.driver.dto.UpdateAvailabilityRequest;
+import com.ridelink.driver.dto.UpdateLocationRequest;
 import com.ridelink.driver.exception.DuplicateResourceException;
 import com.ridelink.driver.exception.ResourceNotFoundException;
 import com.ridelink.driver.repository.DriverRepository;
@@ -107,5 +109,78 @@ class DriverServiceTest {
         );
 
         assertTrue(exception.getMessage().contains("Driver not found"));
+    }
+
+    @Test
+    void testUpdateAvailability_Available_Success() {
+        when(driverRepository.findById("driver-456")).thenReturn(Optional.of(driver));
+        when(driverRepository.save(any(Driver.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UpdateAvailabilityRequest request = new UpdateAvailabilityRequest(DriverAvailability.AVAILABLE);
+        DriverResponse response = driverService.updateAvailability("driver-456", request);
+
+        assertNotNull(response);
+        assertEquals(DriverAvailability.AVAILABLE, response.getAvailability());
+        assertEquals(DriverAvailability.AVAILABLE, driver.getAvailability());
+        verify(driverRepository, times(1)).save(driver);
+    }
+
+    @Test
+    void testUpdateAvailability_Unavailable_Success() {
+        driver.setAvailability(DriverAvailability.AVAILABLE);
+        when(driverRepository.findById("driver-456")).thenReturn(Optional.of(driver));
+        when(driverRepository.save(any(Driver.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UpdateAvailabilityRequest request = new UpdateAvailabilityRequest(DriverAvailability.UNAVAILABLE);
+        DriverResponse response = driverService.updateAvailability("driver-456", request);
+
+        assertNotNull(response);
+        assertEquals(DriverAvailability.UNAVAILABLE, response.getAvailability());
+        assertEquals(DriverAvailability.UNAVAILABLE, driver.getAvailability());
+        verify(driverRepository, times(1)).save(driver);
+    }
+
+    @Test
+    void testUpdateAvailability_NotFound_ThrowsException() {
+        when(driverRepository.findById("driver-999")).thenReturn(Optional.empty());
+
+        UpdateAvailabilityRequest request = new UpdateAvailabilityRequest(DriverAvailability.AVAILABLE);
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> driverService.updateAvailability("driver-999", request)
+        );
+
+        assertTrue(exception.getMessage().contains("Driver not found"));
+        verify(driverRepository, never()).save(any(Driver.class));
+    }
+
+    @Test
+    void testUpdateLocation_Success() {
+        when(driverRepository.findById("driver-456")).thenReturn(Optional.of(driver));
+        when(driverRepository.save(any(Driver.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UpdateLocationRequest request = new UpdateLocationRequest(6.9271, 79.8612);
+        DriverResponse response = driverService.updateLocation("driver-456", request);
+
+        assertNotNull(response);
+        assertEquals(6.9271, response.getLatitude());
+        assertEquals(79.8612, response.getLongitude());
+        assertEquals(6.9271, driver.getLatitude());
+        assertEquals(79.8612, driver.getLongitude());
+        verify(driverRepository, times(1)).save(driver);
+    }
+
+    @Test
+    void testUpdateLocation_NotFound_ThrowsException() {
+        when(driverRepository.findById("driver-999")).thenReturn(Optional.empty());
+
+        UpdateLocationRequest request = new UpdateLocationRequest(6.9271, 79.8612);
+        ResourceNotFoundException exception = assertThrows(
+                ResourceNotFoundException.class,
+                () -> driverService.updateLocation("driver-999", request)
+        );
+
+        assertTrue(exception.getMessage().contains("Driver not found"));
+        verify(driverRepository, never()).save(any(Driver.class));
     }
 }

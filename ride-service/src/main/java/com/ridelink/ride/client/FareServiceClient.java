@@ -6,6 +6,8 @@ import com.ridelink.ride.exception.FareServiceException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -32,6 +34,13 @@ public class FareServiceClient {
     public FareServiceClient(@Value("${fare-payment-service.url}") String fareServiceUrl) {
         this.restClient = RestClient.builder()
                 .baseUrl(fareServiceUrl)
+                .requestInterceptor((request, body, execution) -> {
+                    if (SecurityContextHolder.getContext().getAuthentication()
+                            instanceof JwtAuthenticationToken jwtAuthentication) {
+                        request.getHeaders().setBearerAuth(jwtAuthentication.getToken().getTokenValue());
+                    }
+                    return execution.execute(request, body);
+                })
                 .build();
     }
 

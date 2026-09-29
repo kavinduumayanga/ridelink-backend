@@ -5,6 +5,8 @@ import com.ridelink.ride.exception.DriverServiceException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -32,6 +34,13 @@ public class DriverServiceClient {
     public DriverServiceClient(@Value("${driver-service.url}") String driverServiceUrl) {
         this.restClient = RestClient.builder()
                 .baseUrl(driverServiceUrl)
+                .requestInterceptor((request, body, execution) -> {
+                    if (SecurityContextHolder.getContext().getAuthentication()
+                            instanceof JwtAuthenticationToken jwtAuthentication) {
+                        request.getHeaders().setBearerAuth(jwtAuthentication.getToken().getTokenValue());
+                    }
+                    return execution.execute(request, body);
+                })
                 .build();
     }
 
@@ -56,6 +65,33 @@ public class DriverServiceClient {
             return drivers != null ? drivers : List.of();
         } catch (DriverServiceException ex) {
             // Re-throw our own exception type as-is
+            throw ex;
+        } catch (RestClientException ex) {
+            throw new DriverServiceException(
+                    "Failed to communicate with Driver Service", ex);
+        }
+    }
+
+    /**
+     * Resolves the Account Service user ID linked to a Driver Service driver ID.
+     * This contracted lookup is used only to authorize assigned-driver operations.
+     */
+    public AvailableDriverResponse getDriver(String driverId) {
+        try {
+            AvailableDriverResponse driver = restClient.get()
+                    .uri("/api/drivers/{driverId}", driverId)
+                    .retrieve()
+                    .onStatus(HttpStatusCode::isError, (request, response) -> {
+                        throw new DriverServiceException(
+                                "Driver Service returned error: " + response.getStatusCode());
+                    })
+                    .body(AvailableDriverResponse.class);
+
+            if (driver == null) {
+                throw new DriverServiceException("Driver Service returned empty response");
+            }
+            return driver;
+        } catch (DriverServiceException ex) {
             throw ex;
         } catch (RestClientException ex) {
             throw new DriverServiceException(

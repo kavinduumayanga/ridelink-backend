@@ -1,15 +1,23 @@
 package com.ridelink.ride.controller;
 
 import com.ridelink.ride.dto.RideResponse;
+import com.ridelink.ride.config.SecurityConfig;
+import com.ridelink.ride.client.DriverServiceClient;
 import com.ridelink.ride.exception.FareServiceException;
 import com.ridelink.ride.exception.InvalidRideStateException;
 import com.ridelink.ride.exception.RideNotFoundException;
+import com.ridelink.ride.repository.RideRepository;
+import com.ridelink.ride.security.JwtAccessDeniedHandler;
+import com.ridelink.ride.security.JwtAuthenticationEntryPoint;
+import com.ridelink.ride.security.RideAuthorization;
 import com.ridelink.ride.service.RideService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -28,7 +36,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * - POST /api/rides when Fare Service fails (HTTP error mapping)
  */
 @WebMvcTest(RideController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@Import({SecurityConfig.class, JwtAuthenticationEntryPoint.class,
+        JwtAccessDeniedHandler.class, RideAuthorization.class})
+@WithMockUser(username = "driver-account-1", roles = "DRIVER")
 class RideFareIntegrationControllerTest {
 
     @Autowired
@@ -36,6 +46,15 @@ class RideFareIntegrationControllerTest {
 
     @MockitoBean
     private RideService rideService;
+
+    @MockitoBean
+    private RideRepository rideRepository;
+
+    @MockitoBean
+    private DriverServiceClient driverServiceClient;
+
+    @MockitoBean
+    private JwtDecoder jwtDecoder;
 
     // --- PATCH /api/rides/{rideId}/complete ---
 
@@ -90,6 +109,7 @@ class RideFareIntegrationControllerTest {
     // --- POST /api/rides when Fare Service fails ---
 
     @Test
+    @WithMockUser(username = "passenger123", roles = "PASSENGER")
     @DisplayName("POST /api/rides when Fare Service fails returns 502")
     void createRide_fareServiceDown_returns502() throws Exception {
         when(rideService.createRide(any()))

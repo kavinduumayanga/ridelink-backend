@@ -3,13 +3,21 @@ package com.ridelink.ride.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ridelink.ride.dto.CreateRideRequest;
 import com.ridelink.ride.dto.RideResponse;
+import com.ridelink.ride.config.SecurityConfig;
+import com.ridelink.ride.client.DriverServiceClient;
 import com.ridelink.ride.exception.RideNotFoundException;
+import com.ridelink.ride.repository.RideRepository;
+import com.ridelink.ride.security.JwtAccessDeniedHandler;
+import com.ridelink.ride.security.JwtAuthenticationEntryPoint;
+import com.ridelink.ride.security.RideAuthorization;
 import com.ridelink.ride.service.RideService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -29,7 +37,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Uses WebMvcTest to test HTTP layer without starting full application.
  */
 @WebMvcTest(RideController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@Import({SecurityConfig.class, JwtAuthenticationEntryPoint.class,
+        JwtAccessDeniedHandler.class, RideAuthorization.class})
+@WithMockUser(username = "passenger123", roles = "PASSENGER")
 class RideControllerTest {
 
     @Autowired
@@ -37,6 +47,15 @@ class RideControllerTest {
 
     @MockitoBean
     private RideService rideService;
+
+    @MockitoBean
+    private RideRepository rideRepository;
+
+    @MockitoBean
+    private DriverServiceClient driverServiceClient;
+
+    @MockitoBean
+    private JwtDecoder jwtDecoder;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -172,6 +191,7 @@ class RideControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "unknown", roles = "PASSENGER")
     @DisplayName("GET /api/rides/passenger/{passengerId} returns empty array when no rides")
     void getPassengerRides_empty_returns200() throws Exception {
         when(rideService.getRidesByPassengerId("unknown"))

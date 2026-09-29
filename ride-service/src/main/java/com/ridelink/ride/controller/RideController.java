@@ -6,6 +6,7 @@ import com.ridelink.ride.service.RideService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -42,6 +43,7 @@ public class RideController {
      * Returns 201 Created with the ride DTO including estimatedFare.
      */
     @PostMapping
+    @PreAuthorize("hasRole('PASSENGER') and #request.passengerId == authentication.name")
     public ResponseEntity<RideResponse> createRide(@Valid @RequestBody CreateRideRequest request) {
         RideResponse response = rideService.createRide(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -62,6 +64,7 @@ public class RideController {
      * Returns 200 OK with a list (empty array if no rides).
      */
     @GetMapping("/passenger/{passengerId}")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('PASSENGER') and #passengerId == authentication.name)")
     public ResponseEntity<List<RideResponse>> getPassengerRides(@PathVariable String passengerId) {
         List<RideResponse> rides = rideService.getRidesByPassengerId(passengerId);
         return ResponseEntity.ok(rides);

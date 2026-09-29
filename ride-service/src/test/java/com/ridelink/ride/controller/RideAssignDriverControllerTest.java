@@ -1,16 +1,24 @@
 package com.ridelink.ride.controller;
 
 import com.ridelink.ride.dto.RideResponse;
+import com.ridelink.ride.config.SecurityConfig;
+import com.ridelink.ride.client.DriverServiceClient;
 import com.ridelink.ride.exception.DriverServiceException;
 import com.ridelink.ride.exception.InvalidRideStateException;
 import com.ridelink.ride.exception.NoAvailableDriverException;
 import com.ridelink.ride.exception.RideNotFoundException;
+import com.ridelink.ride.repository.RideRepository;
+import com.ridelink.ride.security.JwtAccessDeniedHandler;
+import com.ridelink.ride.security.JwtAuthenticationEntryPoint;
+import com.ridelink.ride.security.RideAuthorization;
 import com.ridelink.ride.service.RideService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -25,7 +33,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Tests HTTP layer error mapping without starting Driver Service.
  */
 @WebMvcTest(RideController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@Import({SecurityConfig.class, JwtAuthenticationEntryPoint.class,
+        JwtAccessDeniedHandler.class, RideAuthorization.class})
+@WithMockUser(username = "passenger123", roles = "PASSENGER")
 class RideAssignDriverControllerTest {
 
     @Autowired
@@ -33,6 +43,15 @@ class RideAssignDriverControllerTest {
 
     @MockitoBean
     private RideService rideService;
+
+    @MockitoBean
+    private RideRepository rideRepository;
+
+    @MockitoBean
+    private DriverServiceClient driverServiceClient;
+
+    @MockitoBean
+    private JwtDecoder jwtDecoder;
 
     // --- Happy Path ---
 

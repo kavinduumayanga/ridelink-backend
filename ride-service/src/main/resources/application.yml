@@ -8,7 +8,16 @@ spring:
 server:
   port: 8083
 
+security:
+  jwt:
+    secret: ${JWT_SECRET}
+
+driver-service:
+  url: ${DRIVER_SERVICE_URL:http://localhost:8082}
+
+fare-payment-service:
+  url: ${FARE_PAYMENT_SERVICE_URL:http://localhost:8084}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
-

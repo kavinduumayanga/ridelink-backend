@@ -1,5 +1,6 @@
 package com.ridelink.ride.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 
 /**
@@ -7,6 +8,7 @@ import java.time.Instant;
  * Field names match the §5.2 response shape exactly.
  * The document's MongoDB `id` is exposed as `rideId` per §1.5 ID conventions.
  */
+@Schema(description = "Ride representation returned by all Ride Management endpoints")
 public class RideResponse {
 
     private String rideId;
@@ -19,6 +21,7 @@ public class RideResponse {
     private Double dropoffLatitude;
     private Double dropoffLongitude;
     private Double distanceKm;
+    @Schema(allowableValues = {"REQUESTED", "ASSIGNED", "ACCEPTED", "IN_PROGRESS", "COMPLETED", "CANCELLED"})
     private String status;
     private Double estimatedFare;
     private Double finalFare;

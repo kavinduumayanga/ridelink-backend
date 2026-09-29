@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -123,6 +124,21 @@ class RideFareIntegrationServiceTest {
 
             // Must match what Fare Service returned, not any local calculation
             assertEquals(999.99, response.getEstimatedFare());
+        }
+
+        @Test
+        @DisplayName("Fare estimate uses the stable Ride Service rideId")
+        void createRide_fareEstimateUsesStableRideId() {
+            when(fareServiceClient.getFareEstimate(any(FareRequest.class)))
+                    .thenReturn(buildEstimateFareResponse(475.0));
+            when(rideRepository.save(any(Ride.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            RideResponse response = rideService.createRide(buildValidRequest());
+
+            ArgumentCaptor<FareRequest> requestCaptor = ArgumentCaptor.forClass(FareRequest.class);
+            verify(fareServiceClient).getFareEstimate(requestCaptor.capture());
+            assertEquals(response.getRideId(), requestCaptor.getValue().getRideId());
+            assertTrue(requestCaptor.getValue().getRideId().matches("[0-9a-f]{24}"));
         }
     }
 
@@ -313,7 +329,7 @@ class RideFareIntegrationServiceTest {
     private FareResponse buildEstimateFareResponse(Double totalFare) {
         FareResponse response = new FareResponse();
         response.setFareId("fare-est-1");
-        response.setRideId("pending");
+        response.setRideId("ride-estimate");
         response.setFareType("ESTIMATE");
         response.setDistanceKm(5.5);
         response.setBaseFare(200.0);

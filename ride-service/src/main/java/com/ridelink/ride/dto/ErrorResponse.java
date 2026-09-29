@@ -1,15 +1,18 @@
 package com.ridelink.ride.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 
 /**
  * Standard error response matching API_CONTRACTS.md §1.3 exactly.
  * Used by GlobalExceptionHandler.
  */
+@Schema(description = "Standard API error response")
 public class ErrorResponse {
 
     private Instant timestamp;
     private int status;
+    @Schema(allowableValues = {"VALIDATION_ERROR", "UNAUTHENTICATED", "FORBIDDEN", "NOT_FOUND", "CONFLICT", "SERVICE_UNAVAILABLE"})
     private String error;
     private String message;
     private String path;

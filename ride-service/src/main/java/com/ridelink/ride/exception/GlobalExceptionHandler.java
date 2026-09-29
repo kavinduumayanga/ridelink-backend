@@ -25,18 +25,11 @@ public class GlobalExceptionHandler {
             MethodArgumentNotValidException ex, HttpServletRequest request) {
 
         String message = ex.getBindingResult().getFieldErrors().stream()
-                .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
+                .map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
                 .findFirst()
                 .orElse("Validation failed");
 
-        ErrorResponse error = new ErrorResponse(
-                Instant.now(),
-                HttpStatus.BAD_REQUEST.value(),
-                "VALIDATION_ERROR",
-                message,
-                request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        return error(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", message, request);
     }
 
     /**
@@ -45,15 +38,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RideNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleRideNotFound(
             RideNotFoundException ex, HttpServletRequest request) {
-
-        ErrorResponse error = new ErrorResponse(
-                Instant.now(),
-                HttpStatus.NOT_FOUND.value(),
-                "NOT_FOUND",
-                ex.getMessage(),
-                request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        return error(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage(), request);
     }
 
     /**
@@ -63,15 +48,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidRideStateException.class)
     public ResponseEntity<ErrorResponse> handleInvalidRideState(
             InvalidRideStateException ex, HttpServletRequest request) {
-
-        ErrorResponse error = new ErrorResponse(
-                Instant.now(),
-                HttpStatus.CONFLICT.value(),
-                "CONFLICT",
-                ex.getMessage(),
-                request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+        return error(HttpStatus.CONFLICT, "CONFLICT", ex.getMessage(), request);
     }
 
     /**
@@ -81,15 +58,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoAvailableDriverException.class)
     public ResponseEntity<ErrorResponse> handleNoAvailableDriver(
             NoAvailableDriverException ex, HttpServletRequest request) {
-
-        ErrorResponse error = new ErrorResponse(
-                Instant.now(),
-                HttpStatus.NOT_FOUND.value(),
-                "NOT_FOUND",
-                ex.getMessage(),
-                request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        return error(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage(), request);
     }
 
     /**
@@ -100,15 +69,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DriverServiceException.class)
     public ResponseEntity<ErrorResponse> handleDriverServiceException(
             DriverServiceException ex, HttpServletRequest request) {
-
-        ErrorResponse error = new ErrorResponse(
-                Instant.now(),
-                HttpStatus.BAD_GATEWAY.value(),
-                "SERVICE_UNAVAILABLE",
-                "Driver Service is currently unavailable",
-                request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(error);
+        return error(HttpStatus.BAD_GATEWAY, "SERVICE_UNAVAILABLE",
+                "Driver Service is currently unavailable", request);
     }
 
     /**
@@ -119,16 +81,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(FareServiceException.class)
     public ResponseEntity<ErrorResponse> handleFareServiceException(
             FareServiceException ex, HttpServletRequest request) {
+        return error(HttpStatus.BAD_GATEWAY, "SERVICE_UNAVAILABLE",
+                "Fare Service is currently unavailable", request);
+    }
 
+    private ResponseEntity<ErrorResponse> error(HttpStatus status,
+                                                String code,
+                                                String message,
+                                                HttpServletRequest request) {
         ErrorResponse error = new ErrorResponse(
-                Instant.now(),
-                HttpStatus.BAD_GATEWAY.value(),
-                "SERVICE_UNAVAILABLE",
-                "Fare Service is currently unavailable",
-                request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(error);
+                Instant.now(), status.value(), code, message, request.getRequestURI());
+        return ResponseEntity.status(status).body(error);
     }
 }
-
-

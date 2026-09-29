@@ -64,7 +64,7 @@ class RideServiceTest {
         // Lenient because getRideById/getRidesByPassengerId tests don't use this stub.
         FareResponse fareResponse = new FareResponse();
         fareResponse.setFareId("fare123");
-        fareResponse.setRideId("pending");
+        fareResponse.setRideId("ride-estimate");
         fareResponse.setFareType("ESTIMATE");
         fareResponse.setDistanceKm(5.5);
         fareResponse.setBaseFare(200.0);

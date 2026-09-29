@@ -13,6 +13,7 @@ import com.ridelink.ride.exception.RideNotFoundException;
 import com.ridelink.ride.model.Ride;
 import com.ridelink.ride.model.RideStatus;
 import com.ridelink.ride.repository.RideRepository;
+import org.bson.types.ObjectId;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -23,14 +24,17 @@ import java.util.List;
  * and ride completion with fare integration.
  *
  * Responsibilities:
- * - Create rides with status REQUESTED, calling Fare Service for estimated fare.
+ * - Create rides with status REQUESTED, calling Fare Service for estimated
+ * fare.
  * - Retrieve a single ride by rideId (404 if not found).
  * - Retrieve passenger ride history, newest first.
  * - Assign a driver to a REQUESTED ride by calling Driver Service.
- * - Complete a ride (IN_PROGRESS → COMPLETED) by calling Fare Service for final fare.
+ * - Complete a ride (IN_PROGRESS → COMPLETED) by calling Fare Service for final
+ * fare.
  * - Map between Ride document and RideResponse DTO.
  *
- * Fare calculation is owned by Fare & Payment Service (API_CONTRACTS.md §6.2, §6.3).
+ * Fare calculation is owned by Fare & Payment Service (API_CONTRACTS.md §6.2,
+ * §6.3).
  * Ride Service never calculates fares locally.
  */
 @Service
@@ -41,8 +45,8 @@ public class RideService {
     private final FareServiceClient fareServiceClient;
 
     public RideService(RideRepository rideRepository,
-                       DriverServiceClient driverServiceClient,
-                       FareServiceClient fareServiceClient) {
+            DriverServiceClient driverServiceClient,
+            FareServiceClient fareServiceClient) {
         this.rideRepository = rideRepository;
         this.driverServiceClient = driverServiceClient;
         this.fareServiceClient = fareServiceClient;
@@ -52,7 +56,8 @@ public class RideService {
      * Creates a new ride in REQUESTED status.
      *
      * Flow (API_CONTRACTS.md §5.2 and §6.2):
-     * 1. Call Fare Service POST /api/fares/estimate with a temporary rideId and distanceKm.
+     * 1. Call Fare Service POST /api/fares/estimate with a temporary rideId and
+     * distanceKm.
      * 2. Store the returned totalFare as estimatedFare.
      * 3. Persist the ride with status REQUESTED.
      *
@@ -65,6 +70,7 @@ public class RideService {
         Instant now = Instant.now();
 
         Ride ride = new Ride();
+        ride.setId(new ObjectId().toHexString());
         ride.setPassengerId(request.getPassengerId());
         ride.setDriverId(null);
         ride.setPickupLocation(request.getPickupLocation());
@@ -81,9 +87,7 @@ public class RideService {
 
         // Call Fare Service for estimate BEFORE persisting.
         // If this fails, FareServiceException propagates and no ride is saved.
-        // Use a temporary placeholder rideId; Fare Service needs it for correlation.
-        // After save, the rideId will be the MongoDB-generated ID.
-        FareRequest fareRequest = new FareRequest("pending", request.getDistanceKm());
+        FareRequest fareRequest = new FareRequest(ride.getId(), request.getDistanceKm());
         FareResponse fareResponse = fareServiceClient.getFareEstimate(fareRequest);
         ride.setEstimatedFare(fareResponse.getTotalFare());
 
@@ -93,12 +97,11 @@ public class RideService {
 
     /**
      * Retrieves a ride by its rideId.
+     *
      * @throws RideNotFoundException if ride does not exist (→ 404).
      */
     public RideResponse getRideById(String rideId) {
-        Ride ride = rideRepository.findById(rideId)
-                .orElseThrow(() -> new RideNotFoundException(rideId));
-        return toRideResponse(ride);
+        return toRideResponse(findRide(rideId));
     }
 
     /**
@@ -118,7 +121,8 @@ public class RideService {
      * Flow (API_CONTRACTS.md §5.5 and §6.1):
      * 1. Load ride by rideId (404 if not found).
      * 2. Validate ride is in REQUESTED status (409 if not).
-     * 3. Call Driver Service GET /api/drivers/available?serviceArea={pickupLocation}.
+     * 3. Call Driver Service GET
+     * /api/drivers/available?serviceArea={pickupLocation}.
      * 4. Select the FIRST eligible driver returned (deterministic, simple rule).
      * 5. Store only driverId in the ride.
      * 6. Transition status: REQUESTED → ASSIGNED.
@@ -127,15 +131,18 @@ public class RideService {
      *
      * @param rideId the ride to assign a driver to
      * @return RideResponse with status ASSIGNED and driverId populated
-     * @throws RideNotFoundException if ride does not exist
-     * @throws InvalidRideStateException if ride is not in REQUESTED status
-     * @throws NoAvailableDriverException if no available drivers are found
-     * @throws com.ridelink.ride.exception.DriverServiceException if Driver Service is unreachable
+     * @throws RideNotFoundException                              if ride does not
+     *                                                            exist
+     * @throws InvalidRideStateException                          if ride is not in
+     *                                                            REQUESTED status
+     * @throws NoAvailableDriverException                         if no available
+     *                                                            drivers are found
+     * @throws com.ridelink.ride.exception.DriverServiceException if Driver Service
+     *                                                            is unreachable
      */
     public RideResponse assignDriver(String rideId) {
         // Step 1: Load ride
-        Ride ride = rideRepository.findById(rideId)
-                .orElseThrow(() -> new RideNotFoundException(rideId));
+        Ride ride = findRide(rideId);
 
         // Step 2: Validate ride is REQUESTED
         if (ride.getStatus() != RideStatus.REQUESTED) {
@@ -147,8 +154,7 @@ public class RideService {
         // Step 3: Call Driver Service for available drivers
         // Use pickupLocation as the serviceArea query parameter
         String serviceArea = ride.getPickupLocation();
-        List<AvailableDriverResponse> availableDrivers =
-                driverServiceClient.getAvailableDrivers(serviceArea);
+        List<AvailableDriverResponse> availableDrivers = driverServiceClient.getAvailableDrivers(serviceArea);
 
         // Step 4: Check for available drivers
         if (availableDrivers.isEmpty()) {
@@ -174,6 +180,29 @@ public class RideService {
         return toRideResponse(saved);
     }
 
+    public RideResponse acceptRide(String rideId) {
+        return transitionRide(rideId, RideStatus.ASSIGNED, RideStatus.ACCEPTED, "accept");
+    }
+
+    public RideResponse startRide(String rideId) {
+        return transitionRide(rideId, RideStatus.ACCEPTED, RideStatus.IN_PROGRESS, "start");
+    }
+
+    public RideResponse cancelRide(String rideId) {
+        Ride ride = findRide(rideId);
+        if (ride.getStatus() != RideStatus.REQUESTED
+                && ride.getStatus() != RideStatus.ASSIGNED
+                && ride.getStatus() != RideStatus.ACCEPTED) {
+            throw new InvalidRideStateException(
+                    "Cannot cancel ride: ride status is " + ride.getStatus()
+                            + ", expected REQUESTED, ASSIGNED, or ACCEPTED");
+        }
+
+        ride.setStatus(RideStatus.CANCELLED);
+        ride.setUpdatedAt(Instant.now());
+        return toRideResponse(rideRepository.save(ride));
+    }
+
     /**
      * Completes a ride by transitioning IN_PROGRESS → COMPLETED
      * and calling Fare Service for the final fare.
@@ -194,14 +223,16 @@ public class RideService {
      *
      * @param rideId the ride to complete
      * @return RideResponse with status COMPLETED and finalFare populated
-     * @throws RideNotFoundException if ride does not exist
-     * @throws InvalidRideStateException if ride is not in IN_PROGRESS status
-     * @throws com.ridelink.ride.exception.FareServiceException if Fare Service is unreachable
+     * @throws RideNotFoundException                            if ride does not
+     *                                                          exist
+     * @throws InvalidRideStateException                        if ride is not in
+     *                                                          IN_PROGRESS status
+     * @throws com.ridelink.ride.exception.FareServiceException if Fare Service is
+     *                                                          unreachable
      */
     public RideResponse completeRide(String rideId) {
         // Step 1: Load ride
-        Ride ride = rideRepository.findById(rideId)
-                .orElseThrow(() -> new RideNotFoundException(rideId));
+        Ride ride = findRide(rideId);
 
         // Step 2: Validate ride is IN_PROGRESS
         if (ride.getStatus() != RideStatus.IN_PROGRESS) {
@@ -229,6 +260,27 @@ public class RideService {
         return toRideResponse(saved);
     }
 
+    private RideResponse transitionRide(String rideId,
+                                        RideStatus expectedStatus,
+                                        RideStatus targetStatus,
+                                        String operation) {
+        Ride ride = findRide(rideId);
+        if (ride.getStatus() != expectedStatus) {
+            throw new InvalidRideStateException(
+                    "Cannot " + operation + " ride: ride status is " + ride.getStatus()
+                            + ", expected " + expectedStatus);
+        }
+
+        ride.setStatus(targetStatus);
+        ride.setUpdatedAt(Instant.now());
+        return toRideResponse(rideRepository.save(ride));
+    }
+
+    private Ride findRide(String rideId) {
+        return rideRepository.findById(rideId)
+                .orElseThrow(() -> new RideNotFoundException(rideId));
+    }
+
     /**
      * Maps a Ride document to a RideResponse DTO.
      * Document `id` becomes `rideId` in the response.
@@ -253,4 +305,3 @@ public class RideService {
         return response;
     }
 }
-

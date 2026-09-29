@@ -1,7 +1,10 @@
 package com.ridelink.ride.service;
 
 import com.ridelink.ride.client.DriverServiceClient;
+import com.ridelink.ride.client.FareServiceClient;
 import com.ridelink.ride.dto.CreateRideRequest;
+import com.ridelink.ride.dto.FareRequest;
+import com.ridelink.ride.dto.FareResponse;
 import com.ridelink.ride.dto.RideResponse;
 import com.ridelink.ride.exception.RideNotFoundException;
 import com.ridelink.ride.model.Ride;
@@ -37,6 +40,9 @@ class RideServiceTest {
     @Mock
     private DriverServiceClient driverServiceClient;
 
+    @Mock
+    private FareServiceClient fareServiceClient;
+
     @InjectMocks
     private RideService rideService;
 
@@ -53,6 +59,18 @@ class RideServiceTest {
         validRequest.setDropoffLatitude(6.8942);
         validRequest.setDropoffLongitude(79.8558);
         validRequest.setDistanceKm(5.5);
+
+        // Default fare estimate mock — createRide now calls Fare Service.
+        // Lenient because getRideById/getRidesByPassengerId tests don't use this stub.
+        FareResponse fareResponse = new FareResponse();
+        fareResponse.setFareId("fare123");
+        fareResponse.setRideId("pending");
+        fareResponse.setFareType("ESTIMATE");
+        fareResponse.setDistanceKm(5.5);
+        fareResponse.setBaseFare(200.0);
+        fareResponse.setRatePerKm(50.0);
+        fareResponse.setTotalFare(475.0);
+        lenient().when(fareServiceClient.getFareEstimate(any(FareRequest.class))).thenReturn(fareResponse);
     }
 
     // --- Ride Creation Tests ---
@@ -113,8 +131,8 @@ class RideServiceTest {
     }
 
     @Test
-    @DisplayName("createRide sets estimatedFare to null (Fare Service integration deferred)")
-    void createRide_estimatedFareIsNull() {
+    @DisplayName("createRide stores estimatedFare from Fare Service")
+    void createRide_estimatedFareFromFareService() {
         when(rideRepository.save(any(Ride.class))).thenAnswer(invocation -> {
             Ride ride = invocation.getArgument(0);
             ride.setId("rideId1");
@@ -123,7 +141,7 @@ class RideServiceTest {
 
         RideResponse response = rideService.createRide(validRequest);
 
-        assertNull(response.getEstimatedFare());
+        assertEquals(475.0, response.getEstimatedFare());
     }
 
     @Test

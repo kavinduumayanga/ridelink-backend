@@ -1,6 +1,7 @@
 package com.ridelink.ride.service;
 
 import com.ridelink.ride.client.DriverServiceClient;
+import com.ridelink.ride.client.FareServiceClient;
 import com.ridelink.ride.dto.AvailableDriverResponse;
 import com.ridelink.ride.dto.RideResponse;
 import com.ridelink.ride.exception.DriverServiceException;
@@ -39,6 +40,9 @@ class RideAssignDriverServiceTest {
 
     @Mock
     private DriverServiceClient driverServiceClient;
+
+    @Mock
+    private FareServiceClient fareServiceClient;
 
     @InjectMocks
     private RideService rideService;

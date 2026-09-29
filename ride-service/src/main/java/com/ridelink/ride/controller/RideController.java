@@ -18,12 +18,13 @@ import java.util.List;
 
 /**
  * REST controller for ride endpoints.
- * Paths match API_CONTRACTS.md §5.2–§5.5 exactly.
+ * Paths match API_CONTRACTS.md §5.2–§5.8 exactly.
  *
  * POST  /api/rides                          → Create Ride (§5.2)
  * GET   /api/rides/{rideId}                 → Get Ride (§5.3)
  * GET   /api/rides/passenger/{passengerId}  → Get Passenger Rides (§5.4)
  * PATCH /api/rides/{rideId}/assign          → Assign Driver (§5.5)
+ * PATCH /api/rides/{rideId}/complete        → Complete Ride (§5.8)
  */
 @RestController
 @RequestMapping("/api/rides")
@@ -37,7 +38,8 @@ public class RideController {
 
     /**
      * POST /api/rides — Create a new ride request.
-     * Returns 201 Created with the ride DTO.
+     * Calls Fare Service for estimated fare during creation.
+     * Returns 201 Created with the ride DTO including estimatedFare.
      */
     @PostMapping
     public ResponseEntity<RideResponse> createRide(@Valid @RequestBody CreateRideRequest request) {
@@ -79,5 +81,18 @@ public class RideController {
         RideResponse response = rideService.assignDriver(rideId);
         return ResponseEntity.ok(response);
     }
-}
 
+    /**
+     * PATCH /api/rides/{rideId}/complete — Complete a ride.
+     * Ride Service calls Fare Service for final fare calculation,
+     * transitions status IN_PROGRESS → COMPLETED, and stores finalFare.
+     * Returns 200 OK with the updated ride DTO (status: COMPLETED, finalFare populated).
+     *
+     * Error codes: 404 ride not found, 409 invalid state, 502 Fare Service down.
+     */
+    @PatchMapping("/{rideId}/complete")
+    public ResponseEntity<RideResponse> completeRide(@PathVariable String rideId) {
+        RideResponse response = rideService.completeRide(rideId);
+        return ResponseEntity.ok(response);
+    }
+}

@@ -110,5 +110,25 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(error);
     }
+
+    /**
+     * Handles Fare Service communication failures → 502 BAD_GATEWAY.
+     * Covers connection errors, timeouts, and Fare Service 5xx responses.
+     * Does not expose stack traces or low-level HTTP client errors.
+     */
+    @ExceptionHandler(FareServiceException.class)
+    public ResponseEntity<ErrorResponse> handleFareServiceException(
+            FareServiceException ex, HttpServletRequest request) {
+
+        ErrorResponse error = new ErrorResponse(
+                Instant.now(),
+                HttpStatus.BAD_GATEWAY.value(),
+                "SERVICE_UNAVAILABLE",
+                "Fare Service is currently unavailable",
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(error);
+    }
 }
+
 

@@ -1,5 +1,6 @@
 package com.ridelink.ride.service;
 
+import com.ridelink.ride.client.DriverServiceClient;
 import com.ridelink.ride.dto.CreateRideRequest;
 import com.ridelink.ride.dto.RideResponse;
 import com.ridelink.ride.exception.RideNotFoundException;
@@ -32,6 +33,9 @@ class RideServiceTest {
 
     @Mock
     private RideRepository rideRepository;
+
+    @Mock
+    private DriverServiceClient driverServiceClient;
 
     @InjectMocks
     private RideService rideService;

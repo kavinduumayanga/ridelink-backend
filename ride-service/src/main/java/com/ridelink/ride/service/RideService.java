@@ -1,7 +1,11 @@
 package com.ridelink.ride.service;
 
+import com.ridelink.ride.client.DriverServiceClient;
+import com.ridelink.ride.dto.AvailableDriverResponse;
 import com.ridelink.ride.dto.CreateRideRequest;
 import com.ridelink.ride.dto.RideResponse;
+import com.ridelink.ride.exception.InvalidRideStateException;
+import com.ridelink.ride.exception.NoAvailableDriverException;
 import com.ridelink.ride.exception.RideNotFoundException;
 import com.ridelink.ride.model.Ride;
 import com.ridelink.ride.model.RideStatus;
@@ -12,12 +16,13 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Business logic for ride creation and retrieval.
+ * Business logic for ride creation, retrieval, and driver assignment.
  *
  * Responsibilities:
  * - Create rides with status REQUESTED, driverId null, finalFare null.
  * - Retrieve a single ride by rideId (404 if not found).
  * - Retrieve passenger ride history, newest first.
+ * - Assign a driver to a REQUESTED ride by calling Driver Service.
  * - Map between Ride document and RideResponse DTO.
  *
  * estimatedFare is left null for now — Fare Service integration will
@@ -27,9 +32,12 @@ import java.util.List;
 public class RideService {
 
     private final RideRepository rideRepository;
+    private final DriverServiceClient driverServiceClient;
 
-    public RideService(RideRepository rideRepository) {
+    public RideService(RideRepository rideRepository,
+                       DriverServiceClient driverServiceClient) {
         this.rideRepository = rideRepository;
+        this.driverServiceClient = driverServiceClient;
     }
 
     /**
@@ -82,6 +90,68 @@ public class RideService {
     }
 
     /**
+     * Assigns a driver to a ride.
+     *
+     * Flow (API_CONTRACTS.md §5.5 and §6.1):
+     * 1. Load ride by rideId (404 if not found).
+     * 2. Validate ride is in REQUESTED status (409 if not).
+     * 3. Call Driver Service GET /api/drivers/available?serviceArea={pickupLocation}.
+     * 4. Select the FIRST eligible driver returned (deterministic, simple rule).
+     * 5. Store only driverId in the ride.
+     * 6. Transition status: REQUESTED → ASSIGNED.
+     * 7. Update updatedAt timestamp.
+     * 8. Persist and return RideResponse.
+     *
+     * @param rideId the ride to assign a driver to
+     * @return RideResponse with status ASSIGNED and driverId populated
+     * @throws RideNotFoundException if ride does not exist
+     * @throws InvalidRideStateException if ride is not in REQUESTED status
+     * @throws NoAvailableDriverException if no available drivers are found
+     * @throws com.ridelink.ride.exception.DriverServiceException if Driver Service is unreachable
+     */
+    public RideResponse assignDriver(String rideId) {
+        // Step 1: Load ride
+        Ride ride = rideRepository.findById(rideId)
+                .orElseThrow(() -> new RideNotFoundException(rideId));
+
+        // Step 2: Validate ride is REQUESTED
+        if (ride.getStatus() != RideStatus.REQUESTED) {
+            throw new InvalidRideStateException(
+                    "Cannot assign driver: ride status is " + ride.getStatus()
+                            + ", expected REQUESTED");
+        }
+
+        // Step 3: Call Driver Service for available drivers
+        // Use pickupLocation as the serviceArea query parameter
+        String serviceArea = ride.getPickupLocation();
+        List<AvailableDriverResponse> availableDrivers =
+                driverServiceClient.getAvailableDrivers(serviceArea);
+
+        // Step 4: Check for available drivers
+        if (availableDrivers.isEmpty()) {
+            throw new NoAvailableDriverException(serviceArea);
+        }
+
+        // Step 5: Select FIRST eligible driver (deterministic, simple rule)
+        AvailableDriverResponse selectedDriver = availableDrivers.get(0);
+
+        // Step 6: Store only driverId in ride
+        ride.setDriverId(selectedDriver.getDriverId());
+
+        // Step 7: Transition status REQUESTED → ASSIGNED
+        ride.setStatus(RideStatus.ASSIGNED);
+
+        // Step 8: Update timestamp
+        ride.setUpdatedAt(Instant.now());
+
+        // Step 9: Persist
+        Ride saved = rideRepository.save(ride);
+
+        // Step 10: Return RideResponse
+        return toRideResponse(saved);
+    }
+
+    /**
      * Maps a Ride document to a RideResponse DTO.
      * Document `id` becomes `rideId` in the response.
      */
@@ -105,3 +175,4 @@ public class RideService {
         return response;
     }
 }
+

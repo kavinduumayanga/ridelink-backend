@@ -55,4 +55,60 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
     }
+
+    /**
+     * Handles invalid ride state transitions → 409 CONFLICT.
+     * Per API_CONTRACTS.md §1.3 and §5.1.
+     */
+    @ExceptionHandler(InvalidRideStateException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidRideState(
+            InvalidRideStateException ex, HttpServletRequest request) {
+
+        ErrorResponse error = new ErrorResponse(
+                Instant.now(),
+                HttpStatus.CONFLICT.value(),
+                "CONFLICT",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    /**
+     * Handles no available drivers found → 404 NOT_FOUND.
+     * Per API_CONTRACTS.md §5.5 error codes.
+     */
+    @ExceptionHandler(NoAvailableDriverException.class)
+    public ResponseEntity<ErrorResponse> handleNoAvailableDriver(
+            NoAvailableDriverException ex, HttpServletRequest request) {
+
+        ErrorResponse error = new ErrorResponse(
+                Instant.now(),
+                HttpStatus.NOT_FOUND.value(),
+                "NOT_FOUND",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+    }
+
+    /**
+     * Handles Driver Service communication failures → 502 BAD_GATEWAY.
+     * Covers connection errors, timeouts, and Driver Service 5xx responses.
+     * Does not expose stack traces or low-level HTTP client errors.
+     */
+    @ExceptionHandler(DriverServiceException.class)
+    public ResponseEntity<ErrorResponse> handleDriverServiceException(
+            DriverServiceException ex, HttpServletRequest request) {
+
+        ErrorResponse error = new ErrorResponse(
+                Instant.now(),
+                HttpStatus.BAD_GATEWAY.value(),
+                "SERVICE_UNAVAILABLE",
+                "Driver Service is currently unavailable",
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(error);
+    }
 }
+

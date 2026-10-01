@@ -16,6 +16,8 @@ import com.ridelink.driver.exception.ResourceNotFoundException;
 import com.ridelink.driver.service.DriverService;
 import com.ridelink.driver.service.VehicleService;
 import org.junit.jupiter.api.Test;
+import java.util.Collections;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -434,5 +436,91 @@ class DriverControllerTest {
                         .content("{\"latitude\": \"invalid\", \"longitude\": 79.8612}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void testGetAvailableDrivers_WithServiceArea_Success() throws Exception {
+        DriverResponse driver1 = new DriverResponse(
+                "driver-01", "acc-1", "DL-111", "Colombo",
+                DriverAvailability.AVAILABLE, 6.9271, 79.8612
+        );
+        DriverResponse driver2 = new DriverResponse(
+                "driver-02", "acc-2", "DL-222", "Colombo",
+                DriverAvailability.AVAILABLE, 6.9300, 79.8650
+        );
+
+        when(driverService.getAvailableDrivers("Colombo")).thenReturn(List.of(driver1, driver2));
+
+        mockMvc.perform(get("/api/drivers/available")
+                        .param("serviceArea", "Colombo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].driverId").value("driver-01"))
+                .andExpect(jsonPath("$[0].accountId").value("acc-1"))
+                .andExpect(jsonPath("$[0].licenseNumber").value("DL-111"))
+                .andExpect(jsonPath("$[0].serviceArea").value("Colombo"))
+                .andExpect(jsonPath("$[0].availability").value("AVAILABLE"))
+                .andExpect(jsonPath("$[0].latitude").value(6.9271))
+                .andExpect(jsonPath("$[0].longitude").value(79.8612))
+                .andExpect(jsonPath("$[1].driverId").value("driver-02"))
+                .andExpect(jsonPath("$[1].serviceArea").value("Colombo"))
+                .andExpect(jsonPath("$[1].availability").value("AVAILABLE"));
+    }
+
+    @Test
+    void testGetAvailableDrivers_WithoutServiceArea_Success() throws Exception {
+        DriverResponse driver1 = new DriverResponse(
+                "driver-01", "acc-1", "DL-111", "Colombo",
+                DriverAvailability.AVAILABLE, 6.9271, 79.8612
+        );
+        DriverResponse driver2 = new DriverResponse(
+                "driver-02", "acc-2", "DL-222", "Kandy",
+                DriverAvailability.AVAILABLE, 7.2906, 80.6337
+        );
+
+        when(driverService.getAvailableDrivers(null)).thenReturn(List.of(driver1, driver2));
+
+        mockMvc.perform(get("/api/drivers/available"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].driverId").value("driver-01"))
+                .andExpect(jsonPath("$[1].driverId").value("driver-02"));
+    }
+
+    @Test
+    void testGetAvailableDrivers_EmptyList() throws Exception {
+        when(driverService.getAvailableDrivers("Galle")).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/api/drivers/available")
+                        .param("serviceArea", "Galle"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void testGetAvailableDrivers_DeterministicOrder() throws Exception {
+        DriverResponse driver1 = new DriverResponse(
+                "driver-01", "acc-1", "DL-111", "Colombo",
+                DriverAvailability.AVAILABLE, 6.9271, 79.8612
+        );
+        DriverResponse driver2 = new DriverResponse(
+                "driver-02", "acc-2", "DL-222", "Colombo",
+                DriverAvailability.AVAILABLE, 6.9300, 79.8650
+        );
+        DriverResponse driver3 = new DriverResponse(
+                "driver-03", "acc-3", "DL-333", "Colombo",
+                DriverAvailability.AVAILABLE, 6.9350, 79.8700
+        );
+
+        when(driverService.getAvailableDrivers("Colombo")).thenReturn(List.of(driver1, driver2, driver3));
+
+        mockMvc.perform(get("/api/drivers/available")
+                        .param("serviceArea", "Colombo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[0].driverId").value("driver-01"))
+                .andExpect(jsonPath("$[1].driverId").value("driver-02"))
+                .andExpect(jsonPath("$[2].driverId").value("driver-03"));
     }
 }

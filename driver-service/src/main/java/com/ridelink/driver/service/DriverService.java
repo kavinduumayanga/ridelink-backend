@@ -11,6 +11,8 @@ import com.ridelink.driver.exception.ResourceNotFoundException;
 import com.ridelink.driver.repository.DriverRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class DriverService {
 
@@ -60,6 +62,20 @@ public class DriverService {
         driver.setLongitude(request.getLongitude());
         Driver updatedDriver = driverRepository.save(driver);
         return mapToDriverResponse(updatedDriver);
+    }
+
+    public List<DriverResponse> getAvailableDrivers(String serviceArea) {
+        List<Driver> drivers;
+        if (serviceArea != null && !serviceArea.trim().isEmpty()) {
+            drivers = driverRepository.findByAvailabilityAndServiceAreaOrderByDriverIdAsc(
+                    DriverAvailability.AVAILABLE, serviceArea.trim());
+        } else {
+            drivers = driverRepository.findByAvailabilityOrderByDriverIdAsc(DriverAvailability.AVAILABLE);
+        }
+
+        return drivers.stream()
+                .map(this::mapToDriverResponse)
+                .toList();
     }
 
     private DriverResponse mapToDriverResponse(Driver driver) {

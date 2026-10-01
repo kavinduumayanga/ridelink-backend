@@ -18,7 +18,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/drivers")
@@ -36,6 +39,13 @@ public class DriverController {
     public ResponseEntity<DriverResponse> createDriver(@Valid @RequestBody CreateDriverRequest request) {
         DriverResponse response = driverService.createDriver(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/available")
+    public ResponseEntity<List<DriverResponse>> getAvailableDrivers(
+            @RequestParam(required = false) String serviceArea) {
+        List<DriverResponse> response = driverService.getAvailableDrivers(serviceArea);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{driverId}")

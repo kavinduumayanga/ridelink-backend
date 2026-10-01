@@ -93,4 +93,99 @@ public class DriverRepositoryTest {
         // Cleanup
         driverRepository.delete(updatedDriver);
     }
+
+    @Test
+    public void testFindByAvailabilityOrderByDriverIdAsc() {
+        Driver d1 = new Driver();
+        d1.setAccountId("acc-avail-order-1");
+        d1.setLicenseNumber("DL-ORD-1");
+        d1.setServiceArea("Colombo");
+        d1.setAvailability(DriverAvailability.AVAILABLE);
+
+        Driver d2 = new Driver();
+        d2.setAccountId("acc-avail-order-2");
+        d2.setLicenseNumber("DL-ORD-2");
+        d2.setServiceArea("Kandy");
+        d2.setAvailability(DriverAvailability.AVAILABLE);
+
+        Driver d3 = new Driver();
+        d3.setAccountId("acc-avail-order-3");
+        d3.setLicenseNumber("DL-ORD-3");
+        d3.setServiceArea("Colombo");
+        d3.setAvailability(DriverAvailability.UNAVAILABLE);
+
+        Driver saved1 = driverRepository.save(d1);
+        Driver saved2 = driverRepository.save(d2);
+        Driver saved3 = driverRepository.save(d3);
+
+        List<Driver> available = driverRepository.findByAvailabilityOrderByDriverIdAsc(DriverAvailability.AVAILABLE);
+        assertFalse(available.isEmpty());
+
+        // All returned drivers must be AVAILABLE
+        assertTrue(available.stream().allMatch(d -> d.getAvailability() == DriverAvailability.AVAILABLE));
+
+        // UNAVAILABLE driver must never appear
+        assertFalse(available.stream().anyMatch(d -> d.getDriverId().equals(saved3.getDriverId())));
+
+        // Results must be ordered by driverId ascending
+        for (int i = 0; i < available.size() - 1; i++) {
+            assertTrue(available.get(i).getDriverId().compareTo(available.get(i + 1).getDriverId()) <= 0);
+        }
+
+        // Cleanup
+        driverRepository.delete(saved1);
+        driverRepository.delete(saved2);
+        driverRepository.delete(saved3);
+    }
+
+    @Test
+    public void testFindByAvailabilityAndServiceAreaOrderByDriverIdAsc() {
+        Driver d1 = new Driver();
+        d1.setAccountId("acc-area-order-1");
+        d1.setLicenseNumber("DL-AREA-1");
+        d1.setServiceArea("Galle");
+        d1.setAvailability(DriverAvailability.AVAILABLE);
+
+        Driver d2 = new Driver();
+        d2.setAccountId("acc-area-order-2");
+        d2.setLicenseNumber("DL-AREA-2");
+        d2.setServiceArea("Galle");
+        d2.setAvailability(DriverAvailability.AVAILABLE);
+
+        Driver d3 = new Driver();
+        d3.setAccountId("acc-area-order-3");
+        d3.setLicenseNumber("DL-AREA-3");
+        d3.setServiceArea("Colombo");
+        d3.setAvailability(DriverAvailability.AVAILABLE);
+
+        Driver d4 = new Driver();
+        d4.setAccountId("acc-area-order-4");
+        d4.setLicenseNumber("DL-AREA-4");
+        d4.setServiceArea("Galle");
+        d4.setAvailability(DriverAvailability.UNAVAILABLE);
+
+        Driver saved1 = driverRepository.save(d1);
+        Driver saved2 = driverRepository.save(d2);
+        Driver saved3 = driverRepository.save(d3);
+        Driver saved4 = driverRepository.save(d4);
+
+        List<Driver> result = driverRepository.findByAvailabilityAndServiceAreaOrderByDriverIdAsc(
+                DriverAvailability.AVAILABLE, "Galle");
+
+        assertEquals(2, result.size());
+        assertTrue(result.stream().allMatch(d -> d.getAvailability() == DriverAvailability.AVAILABLE));
+        assertTrue(result.stream().allMatch(d -> "Galle".equals(d.getServiceArea())));
+        assertTrue(result.get(0).getDriverId().compareTo(result.get(1).getDriverId()) <= 0);
+
+        // Excludes different service area
+        assertFalse(result.stream().anyMatch(d -> d.getDriverId().equals(saved3.getDriverId())));
+        // Excludes UNAVAILABLE
+        assertFalse(result.stream().anyMatch(d -> d.getDriverId().equals(saved4.getDriverId())));
+
+        // Cleanup
+        driverRepository.delete(saved1);
+        driverRepository.delete(saved2);
+        driverRepository.delete(saved3);
+        driverRepository.delete(saved4);
+    }
 }

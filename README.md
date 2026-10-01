@@ -95,6 +95,28 @@ Configure `.env` with local values for:
 
 Replace all sample or blank values, and quote URI values that contain shell-sensitive characters such as `&`. Never commit `.env`, Atlas credentials, passwords, connection strings, or runtime JWTs. The same `JWT_SECRET` value must be loaded into all four service processes.
 
+## Quick Demo Start
+
+After `.env` has been configured, the macOS/Linux launcher can start all four services concurrently with one command. On first use, make the scripts executable:
+
+```bash
+chmod +x start-all.sh stop-all.sh
+```
+
+Start RideLink:
+
+```bash
+./start-all.sh
+```
+
+The launcher checks required environment variables and ports, writes service output under `logs/`, waits for all four ports, and remains in the foreground. Press `Ctrl+C` for normal shutdown. If the launcher terminal was closed unexpectedly, stop only its recorded service processes with:
+
+```bash
+./stop-all.sh
+```
+
+The individual-service commands below remain available as the manual alternative.
+
 ## Running the services
 
 Environment variables must be exported in every terminal because each service runs as a separate process. Open four terminals at the repository root and use the corresponding command block.

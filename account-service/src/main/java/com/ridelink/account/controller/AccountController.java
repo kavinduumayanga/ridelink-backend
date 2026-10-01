@@ -5,6 +5,7 @@ import com.ridelink.account.dto.RegisterRequest;
 import com.ridelink.account.dto.UpdateProfileRequest;
 import com.ridelink.account.dto.UpdateStatusRequest;
 import com.ridelink.account.dto.UserResponse;
+import com.ridelink.account.exception.ForbiddenException;
 import com.ridelink.account.service.AccountService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -15,6 +16,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -57,10 +60,15 @@ public class AccountController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Profile retrieved successfully",
                     content = @Content(schema = @Schema(implementation = UserResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized or missing token",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - cannot access another user's profile",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "User not found",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     public ResponseEntity<UserResponse> getProfile(@PathVariable("userId") String userId) {
+        checkProfileAccess(userId);
         UserResponse response = accountService.getProfile(userId);
         return ResponseEntity.ok(response);
     }
@@ -72,12 +80,17 @@ public class AccountController {
                     content = @Content(schema = @Schema(implementation = UserResponse.class))),
             @ApiResponse(responseCode = "400", description = "Validation failure",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized or missing token",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - cannot update another user's profile",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "User not found",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     public ResponseEntity<UserResponse> updateProfile(
             @PathVariable("userId") String userId,
             @Valid @RequestBody UpdateProfileRequest request) {
+        checkProfileAccess(userId);
         UserResponse response = accountService.updateProfile(userId, request);
         return ResponseEntity.ok(response);
     }
@@ -89,6 +102,10 @@ public class AccountController {
                     content = @Content(schema = @Schema(implementation = UserResponse.class))),
             @ApiResponse(responseCode = "400", description = "Validation failure",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized or missing token",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - requires ADMIN role",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "User not found",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
@@ -97,5 +114,19 @@ public class AccountController {
             @Valid @RequestBody UpdateStatusRequest request) {
         UserResponse response = accountService.updateStatus(userId, request);
         return ResponseEntity.ok(response);
+    }
+
+    private void checkProfileAccess(String targetUserId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+            throw new ForbiddenException("Access denied: unauthenticated");
+        }
+        String authenticatedUserId = authentication.getName();
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ADMIN"));
+
+        if (!authenticatedUserId.equals(targetUserId) && !isAdmin) {
+            throw new ForbiddenException("Access denied: you can only access your own profile");
+        }
     }
 }

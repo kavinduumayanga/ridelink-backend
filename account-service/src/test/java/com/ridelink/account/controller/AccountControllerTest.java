@@ -11,6 +11,7 @@ import com.ridelink.account.exception.DuplicateEmailException;
 import com.ridelink.account.exception.GlobalExceptionHandler;
 import com.ridelink.account.exception.UserNotFoundException;
 import com.ridelink.account.service.AccountService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -19,8 +20,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import java.util.List;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -53,6 +59,15 @@ class AccountControllerTest {
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
         objectMapper = new ObjectMapper();
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("665f1a2b3c4d5e6f7a8b9c0d", null,
+                        List.of(new SimpleGrantedAuthority("ROLE_ADMIN")))
+        );
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -354,5 +369,39 @@ class AccountControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status", is(404)))
                 .andExpect(jsonPath("$.error", is("NOT_FOUND")));
+    }
+
+    @Test
+    @DisplayName("GET /api/accounts/{userId} - Should return 403 Forbidden when passenger accesses another user's profile")
+    void testGetProfileForbiddenForOtherUser403() throws Exception {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("differentUserId", null,
+                        List.of(new SimpleGrantedAuthority("ROLE_PASSENGER")))
+        );
+
+        mockMvc.perform(get("/api/accounts/665f1a2b3c4d5e6f7a8b9c0d"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status", is(403)))
+                .andExpect(jsonPath("$.error", is("FORBIDDEN")))
+                .andExpect(jsonPath("$.message", containsString("Access denied")));
+    }
+
+    @Test
+    @DisplayName("PUT /api/accounts/{userId} - Should return 403 Forbidden when passenger updates another user's profile")
+    void testUpdateProfileForbiddenForOtherUser403() throws Exception {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("differentUserId", null,
+                        List.of(new SimpleGrantedAuthority("ROLE_PASSENGER")))
+        );
+
+        UpdateProfileRequest request = new UpdateProfileRequest("KavinduUpdated", "UmayangaUpdated", "+94779999999");
+
+        mockMvc.perform(put("/api/accounts/665f1a2b3c4d5e6f7a8b9c0d")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status", is(403)))
+                .andExpect(jsonPath("$.error", is("FORBIDDEN")))
+                .andExpect(jsonPath("$.message", containsString("Access denied")));
     }
 }

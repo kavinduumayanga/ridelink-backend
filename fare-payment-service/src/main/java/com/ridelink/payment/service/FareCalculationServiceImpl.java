@@ -33,19 +33,7 @@ public class FareCalculationServiceImpl implements FareCalculationService {
             throw new IllegalArgumentException("distanceKm must be greater than 0");
         }
 
-        BigDecimal baseFare = BigDecimal.valueOf(fareProperties.getBaseFare()).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal ratePerKm = BigDecimal.valueOf(fareProperties.getRatePerKm()).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal totalFare = calculateTotalFare(request.getDistanceKm());
-
-        Fare fare = new Fare();
-        fare.setRideId(request.getRideId());
-        fare.setFareType(FareType.ESTIMATE);
-        fare.setDistanceKm(request.getDistanceKm());
-        fare.setBaseFare(baseFare.doubleValue());
-        fare.setRatePerKm(ratePerKm.doubleValue());
-        fare.setTotalFare(totalFare.doubleValue());
-        fare.setCreatedAt(Instant.now());
-
+        Fare fare = buildFareEntity(request.getRideId(), FareType.ESTIMATE, request.getDistanceKm());
         Fare savedFare = fareRepository.save(fare);
         return FareResponse.fromEntity(savedFare);
     }
@@ -59,19 +47,7 @@ public class FareCalculationServiceImpl implements FareCalculationService {
             throw new IllegalArgumentException("distanceKm must be greater than 0");
         }
 
-        BigDecimal baseFare = BigDecimal.valueOf(fareProperties.getBaseFare()).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal ratePerKm = BigDecimal.valueOf(fareProperties.getRatePerKm()).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal totalFare = calculateTotalFare(request.getDistanceKm());
-
-        Fare fare = new Fare();
-        fare.setRideId(request.getRideId());
-        fare.setFareType(FareType.FINAL);
-        fare.setDistanceKm(request.getDistanceKm());
-        fare.setBaseFare(baseFare.doubleValue());
-        fare.setRatePerKm(ratePerKm.doubleValue());
-        fare.setTotalFare(totalFare.doubleValue());
-        fare.setCreatedAt(Instant.now());
-
+        Fare fare = buildFareEntity(request.getRideId(), FareType.FINAL, request.getDistanceKm());
         Fare savedFare = fareRepository.save(fare);
         return FareResponse.fromEntity(savedFare);
     }
@@ -86,5 +62,21 @@ public class FareCalculationServiceImpl implements FareCalculationService {
         BigDecimal distance = BigDecimal.valueOf(distanceKm);
 
         return baseFare.add(distance.multiply(ratePerKm)).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private Fare buildFareEntity(String rideId, FareType fareType, Double distanceKm) {
+        BigDecimal baseFare = BigDecimal.valueOf(fareProperties.getBaseFare()).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal ratePerKm = BigDecimal.valueOf(fareProperties.getRatePerKm()).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalFare = calculateTotalFare(distanceKm);
+
+        Fare fare = new Fare();
+        fare.setRideId(rideId);
+        fare.setFareType(fareType);
+        fare.setDistanceKm(distanceKm);
+        fare.setBaseFare(baseFare.doubleValue());
+        fare.setRatePerKm(ratePerKm.doubleValue());
+        fare.setTotalFare(totalFare.doubleValue());
+        fare.setCreatedAt(Instant.now());
+        return fare;
     }
 }

@@ -1,15 +1,30 @@
 package com.ridelink.payment.dto;
 
 import com.ridelink.payment.domain.Fare;
+import io.swagger.v3.oas.annotations.media.Schema;
 
+@Schema(description = "Response DTO representing estimated or final calculated fare")
 public class FareResponse {
 
+    @Schema(description = "MongoDB fare ID", example = "aa5d4e5f6a7b8c9d0e1f2a3b")
     private String fareId;
+
+    @Schema(description = "MongoDB ride ID", example = "995c3d4e5f6a7b8c9d0e1f2a")
     private String rideId;
+
+    @Schema(description = "Type of fare calculation: ESTIMATE or FINAL", example = "ESTIMATE", allowableValues = {"ESTIMATE", "FINAL"})
     private String fareType;
+
+    @Schema(description = "Distance in kilometers", example = "12.5")
     private Double distanceKm;
+
+    @Schema(description = "Base fare amount in LKR", example = "200.00")
     private Double baseFare;
+
+    @Schema(description = "Rate per kilometer in LKR", example = "50.00")
     private Double ratePerKm;
+
+    @Schema(description = "Total calculated fare amount in LKR", example = "825.00")
     private Double totalFare;
 
     public FareResponse() {

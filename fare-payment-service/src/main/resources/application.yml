@@ -12,6 +12,9 @@ fare:
   base-fare: 200.00
   rate-per-km: 50.00
 
+jwt:
+  secret: ${JWT_SECRET}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

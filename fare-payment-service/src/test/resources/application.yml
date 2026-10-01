@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: fare-payment-service-test
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/ridelink_payment_test_db
+
+server:
+  port: 8084
+
+fare:
+  base-fare: 200.00
+  rate-per-km: 50.00
+
+jwt:
+  secret: dGhpcy1pcy1hLXNhZmUtZGV2ZWxvcG1lbnQtdGVzdC1qd3Qtc2VjcmV0LWtleS1mb3ItcmlkZWxpbms=
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

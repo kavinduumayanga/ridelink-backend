@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: account-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/test_db
+
+jwt:
+  secret: dGVzdFNlY3JldEtleUZvclJpZGVMaW5rSnd0U2lnbmluZ011c3RCZUF0TGVhc3QyNTZCaXRzTG9uZw==
+  expiration-ms: 86400000

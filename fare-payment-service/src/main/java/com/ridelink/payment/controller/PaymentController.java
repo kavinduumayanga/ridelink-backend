@@ -35,15 +35,15 @@ public class PaymentController {
         this.paymentService = paymentService;
     }
 
-    @Operation(summary = "Create simulated payment", description = "Creates and processes a simulated payment (CASH or CARD_SIMULATED) for a completed ride. Allowed for PASSENGER and ADMIN roles.")
+    @Operation(summary = "Create simulated payment", description = "Creates and processes a simulated payment (CASH or CARD_SIMULATED) for a completed ride. Available to authenticated PASSENGER, DRIVER, and ADMIN roles.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Payment created and marked as PAID successfully",
+            @ApiResponse(responseCode = "201", description = "Simulated payment created with PAID or FAILED status",
                     content = @Content(schema = @Schema(implementation = PaymentResponse.class))),
             @ApiResponse(responseCode = "400", description = "Validation failure or invalid payment parameters",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "401", description = "Missing or invalid JWT token",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "403", description = "Insufficient permissions (e.g. DRIVER role)",
+            @ApiResponse(responseCode = "403", description = "Access denied",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "Associated fare not found",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
@@ -56,7 +56,7 @@ public class PaymentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @Operation(summary = "Get payment by ID", description = "Retrieves payment details by payment ID. Allowed for PASSENGER and ADMIN roles.")
+    @Operation(summary = "Get payment by ID", description = "Retrieves payment details by payment ID. Available to authenticated PASSENGER, DRIVER, and ADMIN roles.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Payment details retrieved successfully",
                     content = @Content(schema = @Schema(implementation = PaymentResponse.class))),
@@ -74,7 +74,7 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Get payment by ride ID", description = "Retrieves payment details for a specific ride ID. Allowed for PASSENGER and ADMIN roles.")
+    @Operation(summary = "Get payment by ride ID", description = "Retrieves payment details for a specific ride ID. Available to authenticated PASSENGER, DRIVER, and ADMIN roles.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Payment details retrieved successfully",
                     content = @Content(schema = @Schema(implementation = PaymentResponse.class))),
@@ -92,7 +92,7 @@ public class PaymentController {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Get receipt for payment", description = "Retrieves a combined receipt for a completed (PAID) payment. Allowed for PASSENGER and ADMIN roles.")
+    @Operation(summary = "Get receipt for payment", description = "Retrieves a combined receipt for a completed (PAID) payment. Available to authenticated PASSENGER, DRIVER, and ADMIN roles.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Receipt details retrieved successfully",
                     content = @Content(schema = @Schema(implementation = ReceiptResponse.class))),

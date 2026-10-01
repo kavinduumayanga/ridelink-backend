@@ -19,7 +19,7 @@ public class PaymentRequest {
 
     @NotNull(message = "amount is required")
     @Positive(message = "amount must be greater than 0")
-    @Schema(description = "Payment amount in LKR (must match or cover fare)", example = "860.00", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Payment amount in LKR; must be greater than 0", example = "860.00", requiredMode = Schema.RequiredMode.REQUIRED)
     private Double amount;
 
     @NotNull(message = "paymentMethod is required")

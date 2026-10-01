@@ -151,7 +151,7 @@ class RideFareIntegrationServiceTest {
     class FinalFareTests {
 
         @Test
-        @DisplayName("Successful final fare: status becomes COMPLETED and finalFare stored")
+        @DisplayName("Successful final fare: authoritative fareId and totalFare are stored and exposed")
         void completeRide_fareSuccess_completedWithFinalFare() {
             Ride ride = buildInProgressRide("ride1");
             when(rideRepository.findById("ride1")).thenReturn(Optional.of(ride));
@@ -162,9 +162,14 @@ class RideFareIntegrationServiceTest {
             RideResponse response = rideService.completeRide("ride1");
 
             assertEquals("COMPLETED", response.getStatus());
+            assertEquals("fare-final-1", response.getFinalFareId());
             assertEquals(860.0, response.getFinalFare());
             verify(fareServiceClient).getFinalFare(any(FareRequest.class));
-            verify(rideRepository).save(any(Ride.class));
+            verify(rideRepository).save(argThat(savedRide ->
+                    "fare-final-1".equals(savedRide.getFinalFareId())
+                            && savedRide.getFinalFare().equals(860.0)
+                            && savedRide.getStatus() == RideStatus.COMPLETED
+            ));
         }
 
         @Test
@@ -213,10 +218,12 @@ class RideFareIntegrationServiceTest {
             verify(rideRepository, never()).save(any(Ride.class));
             // Ride object should remain unchanged
             assertEquals(RideStatus.IN_PROGRESS, ride.getStatus());
+            assertNull(ride.getFinalFare());
+            assertNull(ride.getFinalFareId());
         }
 
         @Test
-        @DisplayName("Fare Service failure does not store finalFare")
+        @DisplayName("Fare Service failure stores neither finalFare nor finalFareId")
         void completeRide_fareServiceFails_noFinalFareStored() {
             Ride ride = buildInProgressRide("ride5");
             when(rideRepository.findById("ride5")).thenReturn(Optional.of(ride));
@@ -228,6 +235,7 @@ class RideFareIntegrationServiceTest {
             );
 
             assertNull(ride.getFinalFare());
+            assertNull(ride.getFinalFareId());
         }
 
         @Test
@@ -315,6 +323,7 @@ class RideFareIntegrationServiceTest {
         ride.setStatus(RideStatus.IN_PROGRESS);
         ride.setEstimatedFare(475.0);
         ride.setFinalFare(null);
+        ride.setFinalFareId(null);
         ride.setCreatedAt(Instant.now());
         ride.setUpdatedAt(Instant.now());
         return ride;

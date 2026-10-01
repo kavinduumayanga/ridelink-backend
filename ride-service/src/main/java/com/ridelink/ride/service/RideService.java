@@ -64,7 +64,7 @@ public class RideService {
      * If Fare Service fails, the ride is NOT persisted — a FareServiceException
      * propagates to the caller and is mapped to 502 by GlobalExceptionHandler.
      *
-     * driverId and finalFare are intentionally null at creation time.
+     * driverId, finalFare, and finalFareId are intentionally null at creation time.
      */
     public RideResponse createRide(CreateRideRequest request) {
         Instant now = Instant.now();
@@ -82,6 +82,7 @@ public class RideService {
         ride.setDistanceKm(request.getDistanceKm());
         ride.setStatus(RideStatus.REQUESTED);
         ride.setFinalFare(null);
+        ride.setFinalFareId(null);
         ride.setCreatedAt(now);
         ride.setUpdatedAt(now);
 
@@ -211,18 +212,18 @@ public class RideService {
      * 1. Load ride by rideId (404 if not found).
      * 2. Validate ride is in IN_PROGRESS status (409 if not).
      * 3. Call Fare Service POST /api/fares/final with rideId and distanceKm.
-     * 4. Store the returned totalFare as finalFare.
+     * 4. Store the returned fareId as finalFareId and totalFare as finalFare.
      * 5. Transition status: IN_PROGRESS → COMPLETED.
      * 6. Update updatedAt timestamp.
      * 7. Persist and return RideResponse.
      *
      * If Fare Service fails:
      * - Ride remains IN_PROGRESS (no status change).
-     * - No invented finalFare is stored.
+     * - No invented finalFare or finalFareId is stored.
      * - FareServiceException propagates → 502 BAD_GATEWAY.
      *
      * @param rideId the ride to complete
-     * @return RideResponse with status COMPLETED and finalFare populated
+     * @return RideResponse with status COMPLETED, finalFare, and finalFareId populated
      * @throws RideNotFoundException                            if ride does not
      *                                                          exist
      * @throws InvalidRideStateException                        if ride is not in
@@ -246,7 +247,8 @@ public class RideService {
         FareRequest fareRequest = new FareRequest(rideId, ride.getDistanceKm());
         FareResponse fareResponse = fareServiceClient.getFinalFare(fareRequest);
 
-        // Step 4: Store finalFare from Fare Service response
+        // Step 4: Store the authoritative fare ID and total from Fare Service.
+        ride.setFinalFareId(fareResponse.getFareId());
         ride.setFinalFare(fareResponse.getTotalFare());
 
         // Step 5: Transition status IN_PROGRESS → COMPLETED
@@ -300,6 +302,7 @@ public class RideService {
         response.setStatus(ride.getStatus().name());
         response.setEstimatedFare(ride.getEstimatedFare());
         response.setFinalFare(ride.getFinalFare());
+        response.setFinalFareId(ride.getFinalFareId());
         response.setCreatedAt(ride.getCreatedAt());
         response.setUpdatedAt(ride.getUpdatedAt());
         return response;

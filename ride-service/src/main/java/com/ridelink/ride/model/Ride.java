@@ -43,6 +43,8 @@ public class Ride {
 
     private Double finalFare;
 
+    private String finalFareId;
+
     private Instant createdAt;
 
     private Instant updatedAt;
@@ -154,6 +156,14 @@ public class Ride {
 
     public void setFinalFare(Double finalFare) {
         this.finalFare = finalFare;
+    }
+
+    public String getFinalFareId() {
+        return finalFareId;
+    }
+
+    public void setFinalFareId(String finalFareId) {
+        this.finalFareId = finalFareId;
     }
 
     public Instant getCreatedAt() {

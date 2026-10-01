@@ -45,6 +45,7 @@ class RideTest {
         ride.setStatus(RideStatus.REQUESTED);
         ride.setEstimatedFare(475.00);
         ride.setFinalFare(null);
+        ride.setFinalFareId("fare-final-123");
         ride.setCreatedAt(now);
         ride.setUpdatedAt(now);
 
@@ -61,6 +62,7 @@ class RideTest {
         assertEquals(RideStatus.REQUESTED, ride.getStatus());
         assertEquals(475.00, ride.getEstimatedFare());
         assertNull(ride.getFinalFare());
+        assertEquals("fare-final-123", ride.getFinalFareId());
         assertEquals(now, ride.getCreatedAt());
         assertEquals(now, ride.getUpdatedAt());
     }
@@ -76,6 +78,7 @@ class RideTest {
         assertNull(ride.getStatus());
         assertNull(ride.getEstimatedFare());
         assertNull(ride.getFinalFare());
+        assertNull(ride.getFinalFareId());
         assertNull(ride.getCreatedAt());
     }
 }

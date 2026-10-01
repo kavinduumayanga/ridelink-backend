@@ -25,6 +25,8 @@ public class RideResponse {
     private String status;
     private Double estimatedFare;
     private Double finalFare;
+    @Schema(description = "Fare & Payment Service fare ID returned by final-fare calculation; null before completion", nullable = true)
+    private String finalFareId;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -135,6 +137,14 @@ public class RideResponse {
 
     public void setFinalFare(Double finalFare) {
         this.finalFare = finalFare;
+    }
+
+    public String getFinalFareId() {
+        return finalFareId;
+    }
+
+    public void setFinalFareId(String finalFareId) {
+        this.finalFareId = finalFareId;
     }
 
     public Instant getCreatedAt() {

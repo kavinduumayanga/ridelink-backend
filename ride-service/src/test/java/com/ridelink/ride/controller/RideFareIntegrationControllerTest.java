@@ -59,7 +59,7 @@ class RideFareIntegrationControllerTest {
     // --- PATCH /api/rides/{rideId}/complete ---
 
     @Test
-    @DisplayName("PATCH /api/rides/{rideId}/complete success returns 200 with COMPLETED status and finalFare")
+    @DisplayName("PATCH /api/rides/{rideId}/complete returns finalFare and authoritative finalFareId")
     void completeRide_success_returns200() throws Exception {
         RideResponse response = buildCompletedResponse("ride1", 860.0);
         when(rideService.completeRide("ride1")).thenReturn(response);
@@ -68,7 +68,8 @@ class RideFareIntegrationControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.rideId").value("ride1"))
                 .andExpect(jsonPath("$.status").value("COMPLETED"))
-                .andExpect(jsonPath("$.finalFare").value(860.0));
+                .andExpect(jsonPath("$.finalFare").value(860.0))
+                .andExpect(jsonPath("$.finalFareId").value("fare-final-1"));
     }
 
     @Test
@@ -153,6 +154,7 @@ class RideFareIntegrationControllerTest {
         response.setStatus("COMPLETED");
         response.setEstimatedFare(475.0);
         response.setFinalFare(finalFare);
+        response.setFinalFareId("fare-final-1");
         response.setCreatedAt(Instant.parse("2026-09-27T17:00:00Z"));
         response.setUpdatedAt(Instant.parse("2026-09-27T17:30:00Z"));
         return response;

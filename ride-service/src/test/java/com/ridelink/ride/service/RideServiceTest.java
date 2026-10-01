@@ -159,6 +159,21 @@ class RideServiceTest {
     }
 
     @Test
+    @DisplayName("createRide sets finalFareId to null")
+    void createRide_finalFareIdIsNull() {
+        when(rideRepository.save(any(Ride.class))).thenAnswer(invocation -> {
+            Ride ride = invocation.getArgument(0);
+            ride.setId("rideId1");
+            return ride;
+        });
+
+        RideResponse response = rideService.createRide(validRequest);
+
+        assertNull(response.getFinalFareId());
+        verify(rideRepository).save(argThat(ride -> ride.getFinalFareId() == null));
+    }
+
+    @Test
     @DisplayName("createRide persists ride via repository.save()")
     void createRide_callsRepositorySave() {
         when(rideRepository.save(any(Ride.class))).thenAnswer(invocation -> {
@@ -172,7 +187,8 @@ class RideServiceTest {
         verify(rideRepository).save(argThat(ride ->
                 ride.getPassengerId().equals("passenger123") &&
                 ride.getStatus() == RideStatus.REQUESTED &&
-                ride.getDriverId() == null
+                ride.getDriverId() == null &&
+                ride.getFinalFareId() == null
         ));
     }
 

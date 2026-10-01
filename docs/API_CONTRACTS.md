@@ -751,10 +751,16 @@ Creates a new ride request. The Ride Service calls Fare Service for an estimate.
   "status": "REQUESTED",
   "estimatedFare": 475.00,
   "finalFare": null,
+  "finalFareId": null,
   "createdAt": "2026-09-27T17:00:00.000+00:00",
   "updatedAt": "2026-09-27T17:00:00.000+00:00"
 }
 ```
+
+`finalFareId` is an optional/null String on ride responses. It is `null` before a
+successful final-fare calculation. After successful ride completion, it contains
+the `fareId` returned by Fare & Payment Service. This is an external stable
+identifier owned by Fare & Payment Service; Ride Service does not generate it.
 
 **Error codes:** `400`, `401`, `403`.
 
@@ -832,7 +838,7 @@ Marks the ride as completed. The Ride Service calls Fare Service to calculate th
 
 **Auth:** Bearer JWT (DRIVER role, must be the assigned driver)
 
-**200 OK:** Returns the updated ride DTO with `status: "COMPLETED"` and `finalFare` populated.
+**200 OK:** Returns the updated ride DTO with `status: "COMPLETED"`, `finalFare`, and `finalFareId` populated.
 
 **Error codes:** `401`, `403`, `404`, `409`.
 
@@ -919,7 +925,7 @@ Content-Type: application/json
 | Caller    | Ride Service                                          |
 | Provider  | Fare & Payment Service                                |
 | Auth      | Ride Service forwards the caller's JWT                |
-| Response  | Fare DTO (see §4.2) — Ride Service stores `totalFare` as `finalFare` |
+| Response  | Fare DTO (see §4.2) — Ride Service stores `fareId` as `finalFareId` and `totalFare` as `finalFare` |
 
 ---
 
@@ -966,7 +972,7 @@ This is the complete happy-path sequence using contracted endpoints:
 |   11 | Driver    | Accept ride                                  | `PATCH /api/rides/{rideId}/accept`            |
 |   12 | Driver    | Start ride                                   | `PATCH /api/rides/{rideId}/start`             |
 |   13 | Driver    | Complete ride → Ride Svc calls final fare    | `PATCH /api/rides/{rideId}/complete`          |
-|   14 | Passenger | Create payment                               | `POST /api/payments`                          |
+|   14 | Passenger | Create payment using completed Ride `finalFareId` as `fareId` | `POST /api/payments`              |
 |   15 | Passenger | View receipt                                 | `GET /api/payments/{paymentId}/receipt`        |
 
 ---

@@ -19,7 +19,7 @@ class JwtUtilsTest {
     @Test
     @DisplayName("Should validate valid token and extract userId and role")
     void testValidToken() {
-        String token = JwtTestHelper.generateToken("user-123", "PASSENGER");
+        String token = JwtTestHelper.generateToken("user-123", "PASSENGER", SECRET);
 
         assertTrue(jwtUtils.validateToken(token));
         assertEquals("user-123", jwtUtils.getUserId(token));
@@ -29,7 +29,7 @@ class JwtUtilsTest {
     @Test
     @DisplayName("Should reject expired token")
     void testExpiredToken() {
-        String expiredToken = JwtTestHelper.generateExpiredToken("user-123", "PASSENGER");
+        String expiredToken = JwtTestHelper.generateExpiredToken("user-123", "PASSENGER", SECRET);
 
         assertFalse(jwtUtils.validateToken(expiredToken));
     }
@@ -54,7 +54,7 @@ class JwtUtilsTest {
     @Test
     @DisplayName("Should reject token with unsupported role")
     void testUnsupportedRole() {
-        String token = JwtTestHelper.generateToken("user-123", "SUPPORT");
+        String token = JwtTestHelper.generateToken("user-123", "SUPPORT", SECRET);
 
         assertFalse(jwtUtils.validateToken(token));
     }

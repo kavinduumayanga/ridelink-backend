@@ -20,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -50,6 +51,9 @@ class SecurityIntegrationTest {
     @MockitoBean
     private FareProperties fareProperties;
 
+    @Value("${jwt.secret}")
+    private String jwtSecret;
+
     private ObjectMapper objectMapper;
 
     @BeforeEach
@@ -76,7 +80,7 @@ class SecurityIntegrationTest {
     @Test
     @DisplayName("Protected payment endpoint with expired JWT should return 401 UNAUTHENTICATED")
     void testPaymentWithExpiredJwtUnauthorized() throws Exception {
-        String expiredToken = JwtTestHelper.generateExpiredToken("user-1", "PASSENGER");
+        String expiredToken = JwtTestHelper.generateExpiredToken("user-1", "PASSENGER", jwtSecret);
         PaymentRequest request = new PaymentRequest("ride-1", "fare-1", 500.0, PaymentMethod.CASH);
 
         mockMvc.perform(post("/api/payments")
@@ -105,7 +109,7 @@ class SecurityIntegrationTest {
     @Test
     @DisplayName("PASSENGER role can create simulated payment successfully")
     void testPassengerCanCreatePayment() throws Exception {
-        String passengerToken = JwtTestHelper.generateToken("passenger-123", "PASSENGER");
+        String passengerToken = JwtTestHelper.generateToken("passenger-123", "PASSENGER", jwtSecret);
         PaymentRequest request = new PaymentRequest("ride-1", "fare-1", 860.0, PaymentMethod.CASH);
         PaymentResponse response = new PaymentResponse("payment-1", "ride-1", "fare-1", 860.0, PaymentMethod.CASH, PaymentStatus.PAID, Instant.now());
 
@@ -123,7 +127,7 @@ class SecurityIntegrationTest {
     @Test
     @DisplayName("ADMIN role can create simulated payment successfully")
     void testAdminCanCreatePayment() throws Exception {
-        String adminToken = JwtTestHelper.generateToken("admin-123", "ADMIN");
+        String adminToken = JwtTestHelper.generateToken("admin-123", "ADMIN", jwtSecret);
         PaymentRequest request = new PaymentRequest("ride-1", "fare-1", 860.0, PaymentMethod.CASH);
         PaymentResponse response = new PaymentResponse("payment-1", "ride-1", "fare-1", 860.0, PaymentMethod.CASH, PaymentStatus.PAID, Instant.now());
 
@@ -140,7 +144,7 @@ class SecurityIntegrationTest {
     @Test
     @DisplayName("DRIVER role can create payment because the contract requires authentication only")
     void testDriverCanCreatePayment() throws Exception {
-        String driverToken = JwtTestHelper.generateToken("driver-123", "DRIVER");
+        String driverToken = JwtTestHelper.generateToken("driver-123", "DRIVER", jwtSecret);
         PaymentRequest request = new PaymentRequest("ride-1", "fare-1", 860.0, PaymentMethod.CASH);
         PaymentResponse response = new PaymentResponse("payment-1", "ride-1", "fare-1", 860.0,
                 PaymentMethod.CASH, PaymentStatus.PAID, Instant.now());
@@ -158,7 +162,7 @@ class SecurityIntegrationTest {
     @Test
     @DisplayName("PASSENGER role can retrieve payment by ID")
     void testPassengerCanGetPaymentById() throws Exception {
-        String passengerToken = JwtTestHelper.generateToken("passenger-123", "PASSENGER");
+        String passengerToken = JwtTestHelper.generateToken("passenger-123", "PASSENGER", jwtSecret);
         PaymentResponse response = new PaymentResponse("payment-1", "ride-1", "fare-1", 860.0, PaymentMethod.CASH, PaymentStatus.PAID, Instant.now());
 
         when(paymentService.getPaymentById("payment-1")).thenReturn(response);
@@ -172,7 +176,7 @@ class SecurityIntegrationTest {
     @Test
     @DisplayName("DRIVER role can retrieve payment by ID because the contract requires authentication only")
     void testDriverCanGetPaymentById() throws Exception {
-        String driverToken = JwtTestHelper.generateToken("driver-123", "DRIVER");
+        String driverToken = JwtTestHelper.generateToken("driver-123", "DRIVER", jwtSecret);
         PaymentResponse response = new PaymentResponse("payment-1", "ride-1", "fare-1", 860.0,
                 PaymentMethod.CASH, PaymentStatus.PAID, Instant.now());
 
@@ -187,7 +191,7 @@ class SecurityIntegrationTest {
     @Test
     @DisplayName("PASSENGER role can retrieve receipt")
     void testPassengerCanGetReceipt() throws Exception {
-        String passengerToken = JwtTestHelper.generateToken("passenger-123", "PASSENGER");
+        String passengerToken = JwtTestHelper.generateToken("passenger-123", "PASSENGER", jwtSecret);
         ReceiptResponse receipt = new ReceiptResponse("payment-1", "ride-1", 10.0, 200.0, 50.0, 700.0, PaymentMethod.CASH, PaymentStatus.PAID, Instant.now());
 
         when(paymentService.getReceiptByPaymentId("payment-1")).thenReturn(receipt);
@@ -201,7 +205,7 @@ class SecurityIntegrationTest {
     @Test
     @DisplayName("DRIVER role can retrieve receipt because the contract requires authentication only")
     void testDriverCanGetReceipt() throws Exception {
-        String driverToken = JwtTestHelper.generateToken("driver-123", "DRIVER");
+        String driverToken = JwtTestHelper.generateToken("driver-123", "DRIVER", jwtSecret);
         ReceiptResponse receipt = new ReceiptResponse("payment-1", "ride-1", 10.0, 200.0, 50.0,
                 700.0, PaymentMethod.CASH, PaymentStatus.PAID, Instant.now());
 
@@ -228,7 +232,7 @@ class SecurityIntegrationTest {
     @Test
     @DisplayName("Interservice fare estimation accepts a forwarded PASSENGER JWT")
     void testFareEstimateAcceptsPassengerJwt() throws Exception {
-        String passengerToken = JwtTestHelper.generateToken("passenger-123", "PASSENGER");
+        String passengerToken = JwtTestHelper.generateToken("passenger-123", "PASSENGER", jwtSecret);
         FareEstimateRequest request = new FareEstimateRequest("ride-1", 12.5);
         FareResponse response = new FareResponse("fare-1", "ride-1", "ESTIMATE", 12.5, 200.0, 50.0, 825.0);
 
@@ -258,7 +262,7 @@ class SecurityIntegrationTest {
     @Test
     @DisplayName("Interservice final fare accepts a forwarded DRIVER JWT")
     void testFinalFareAcceptsDriverJwt() throws Exception {
-        String driverToken = JwtTestHelper.generateToken("driver-123", "DRIVER");
+        String driverToken = JwtTestHelper.generateToken("driver-123", "DRIVER", jwtSecret);
         FareFinalRequest request = new FareFinalRequest("ride-1", 13.2);
         FareResponse response = new FareResponse("fare-2", "ride-1", "FINAL", 13.2, 200.0, 50.0, 860.0);
 
@@ -276,7 +280,7 @@ class SecurityIntegrationTest {
     @Test
     @DisplayName("PASSENGER role can retrieve payment by ride ID")
     void testPassengerCanGetPaymentByRideId() throws Exception {
-        String passengerToken = JwtTestHelper.generateToken("passenger-123", "PASSENGER");
+        String passengerToken = JwtTestHelper.generateToken("passenger-123", "PASSENGER", jwtSecret);
         PaymentResponse response = new PaymentResponse("payment-1", "ride-123", "fare-1", 860.0, PaymentMethod.CASH, PaymentStatus.PAID, Instant.now());
 
         when(paymentService.getPaymentByRideId("ride-123")).thenReturn(response);
@@ -290,7 +294,7 @@ class SecurityIntegrationTest {
     @Test
     @DisplayName("DRIVER role can retrieve payment by ride ID because the contract requires authentication only")
     void testDriverCanGetPaymentByRideId() throws Exception {
-        String driverToken = JwtTestHelper.generateToken("driver-123", "DRIVER");
+        String driverToken = JwtTestHelper.generateToken("driver-123", "DRIVER", jwtSecret);
         PaymentResponse response = new PaymentResponse("payment-1", "ride-123", "fare-1", 860.0,
                 PaymentMethod.CASH, PaymentStatus.PAID, Instant.now());
 

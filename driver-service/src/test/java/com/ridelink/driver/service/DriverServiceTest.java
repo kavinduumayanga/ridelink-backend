@@ -122,6 +122,12 @@ class DriverServiceTest {
         assertNotNull(response);
         assertEquals(DriverAvailability.AVAILABLE, response.getAvailability());
         assertEquals(DriverAvailability.AVAILABLE, driver.getAvailability());
+        assertEquals("driver-456", response.getDriverId());
+        assertEquals("acc-123", response.getAccountId());
+        assertEquals("DL-998877", response.getLicenseNumber());
+        assertEquals("Colombo", response.getServiceArea());
+        assertEquals(0.0, response.getLatitude());
+        assertEquals(0.0, response.getLongitude());
         verify(driverRepository, times(1)).save(driver);
     }
 
@@ -167,6 +173,11 @@ class DriverServiceTest {
         assertEquals(79.8612, response.getLongitude());
         assertEquals(6.9271, driver.getLatitude());
         assertEquals(79.8612, driver.getLongitude());
+        assertEquals("driver-456", response.getDriverId());
+        assertEquals("acc-123", response.getAccountId());
+        assertEquals("DL-998877", response.getLicenseNumber());
+        assertEquals("Colombo", response.getServiceArea());
+        assertEquals(DriverAvailability.UNAVAILABLE, response.getAvailability());
         verify(driverRepository, times(1)).save(driver);
     }
 

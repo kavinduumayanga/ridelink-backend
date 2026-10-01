@@ -276,6 +276,15 @@ class DriverControllerTest {
     }
 
     @Test
+    void testUpdateAvailability_MissingAvailability() throws Exception {
+        mockMvc.perform(patch("/api/drivers/driver-789/availability")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+    }
+
+    @Test
     void testUpdateLocation_Success() throws Exception {
         UpdateLocationRequest request = new UpdateLocationRequest(6.9271, 79.8612);
         DriverResponse response = new DriverResponse(
@@ -363,6 +372,66 @@ class DriverControllerTest {
         mockMvc.perform(patch("/api/drivers/driver-789/location")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void testUpdateLocation_MissingLatitude() throws Exception {
+        mockMvc.perform(patch("/api/drivers/driver-789/location")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"longitude\": 79.8612}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void testUpdateLocation_MissingLongitude() throws Exception {
+        mockMvc.perform(patch("/api/drivers/driver-789/location")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"latitude\": 6.9271}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void testUpdateLocation_BoundaryValues_Success() throws Exception {
+        UpdateLocationRequest minBound = new UpdateLocationRequest(-90.0, -180.0);
+        DriverResponse minResponse = new DriverResponse(
+                "driver-789", "acc-123", "DL-123456", "Colombo",
+                DriverAvailability.AVAILABLE, -90.0, -180.0
+        );
+
+        when(driverService.updateLocation(eq("driver-789"), any(UpdateLocationRequest.class))).thenReturn(minResponse);
+
+        mockMvc.perform(patch("/api/drivers/driver-789/location")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(minBound)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.latitude").value(-90.0))
+                .andExpect(jsonPath("$.longitude").value(-180.0));
+
+        UpdateLocationRequest maxBound = new UpdateLocationRequest(90.0, 180.0);
+        DriverResponse maxResponse = new DriverResponse(
+                "driver-789", "acc-123", "DL-123456", "Colombo",
+                DriverAvailability.AVAILABLE, 90.0, 180.0
+        );
+
+        when(driverService.updateLocation(eq("driver-789"), any(UpdateLocationRequest.class))).thenReturn(maxResponse);
+
+        mockMvc.perform(patch("/api/drivers/driver-789/location")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(maxBound)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.latitude").value(90.0))
+                .andExpect(jsonPath("$.longitude").value(180.0));
+    }
+
+    @Test
+    void testUpdateLocation_MalformedJson() throws Exception {
+        mockMvc.perform(patch("/api/drivers/driver-789/location")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"latitude\": \"invalid\", \"longitude\": 79.8612}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
     }

@@ -13,6 +13,8 @@ import com.ridelink.driver.dto.VehicleResponse;
 import com.ridelink.driver.exception.DuplicateResourceException;
 import com.ridelink.driver.exception.GlobalExceptionHandler;
 import com.ridelink.driver.exception.ResourceNotFoundException;
+import com.ridelink.driver.security.JwtAuthenticationFilter;
+import com.ridelink.driver.security.JwtTokenProvider;
 import com.ridelink.driver.service.DriverService;
 import com.ridelink.driver.service.VehicleService;
 import org.junit.jupiter.api.Test;
@@ -23,6 +25,10 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.web.servlet.MockMvc;
+
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -32,7 +38,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = DriverController.class)
-@Import({SecurityConfig.class, GlobalExceptionHandler.class})
+@Import({SecurityConfig.class, GlobalExceptionHandler.class, JwtAuthenticationFilter.class, JwtTokenProvider.class})
+@TestPropertySource(properties = "jwt.secret=TestSecretKeyThatIsAtLeast32BytesLong!!")
 class DriverControllerTest {
 
     @Autowired
@@ -48,6 +55,7 @@ class DriverControllerTest {
     private VehicleService vehicleService;
 
     @Test
+    @WithMockUser(username = "acc-123", roles = "DRIVER")
     void testCreateDriver_Success() throws Exception {
         CreateDriverRequest request = new CreateDriverRequest("acc-123", "DL-123456", "Colombo");
         DriverResponse response = new DriverResponse(
@@ -76,6 +84,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testCreateDriver_ValidationError() throws Exception {
         CreateDriverRequest invalidRequest = new CreateDriverRequest("", "", "");
 
@@ -87,6 +96,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "acc-123", roles = "DRIVER")
     void testCreateDriver_DuplicateProfile_Conflict() throws Exception {
         CreateDriverRequest request = new CreateDriverRequest("acc-123", "DL-123456", "Colombo");
 
@@ -102,6 +112,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testGetDriverById_Success() throws Exception {
         DriverResponse response = new DriverResponse(
                 "driver-789",
@@ -125,6 +136,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testGetDriverById_NotFound() throws Exception {
         when(driverService.getDriverById("driver-999"))
                 .thenThrow(new ResourceNotFoundException("Driver not found with id: driver-999"));
@@ -136,6 +148,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testCreateVehicle_Success() throws Exception {
         VehicleRequest request = new VehicleRequest("ABC-1234", "Toyota", "Prius", 2022, "White", VehicleType.CAR);
         VehicleResponse response = new VehicleResponse(
@@ -166,6 +179,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testCreateVehicle_DriverNotFound() throws Exception {
         VehicleRequest request = new VehicleRequest("ABC-1234", "Toyota", "Prius", 2022, "White", VehicleType.CAR);
 
@@ -180,6 +194,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testUpdateVehicle_Success() throws Exception {
         VehicleRequest request = new VehicleRequest("ABC-9999", "Toyota", "Aqua", 2023, "Silver", VehicleType.CAR);
         VehicleResponse response = new VehicleResponse(
@@ -208,6 +223,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testUpdateAvailability_Available_Success() throws Exception {
         UpdateAvailabilityRequest request = new UpdateAvailabilityRequest(DriverAvailability.AVAILABLE);
         DriverResponse response = new DriverResponse(
@@ -231,6 +247,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testUpdateAvailability_Unavailable_Success() throws Exception {
         UpdateAvailabilityRequest request = new UpdateAvailabilityRequest(DriverAvailability.UNAVAILABLE);
         DriverResponse response = new DriverResponse(
@@ -254,6 +271,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testUpdateAvailability_DriverNotFound() throws Exception {
         UpdateAvailabilityRequest request = new UpdateAvailabilityRequest(DriverAvailability.AVAILABLE);
 
@@ -269,6 +287,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testUpdateAvailability_InvalidPayload() throws Exception {
         mockMvc.perform(patch("/api/drivers/driver-789/availability")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -278,6 +297,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testUpdateAvailability_MissingAvailability() throws Exception {
         mockMvc.perform(patch("/api/drivers/driver-789/availability")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -287,6 +307,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testUpdateLocation_Success() throws Exception {
         UpdateLocationRequest request = new UpdateLocationRequest(6.9271, 79.8612);
         DriverResponse response = new DriverResponse(
@@ -311,6 +332,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testUpdateLocation_DriverNotFound() throws Exception {
         UpdateLocationRequest request = new UpdateLocationRequest(6.9271, 79.8612);
 
@@ -326,6 +348,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testUpdateLocation_InvalidLatitude_Above90() throws Exception {
         UpdateLocationRequest request = new UpdateLocationRequest(91.0, 79.8612);
 
@@ -337,6 +360,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testUpdateLocation_InvalidLatitude_BelowMinus90() throws Exception {
         UpdateLocationRequest request = new UpdateLocationRequest(-91.0, 79.8612);
 
@@ -348,6 +372,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testUpdateLocation_InvalidLongitude_Above180() throws Exception {
         UpdateLocationRequest request = new UpdateLocationRequest(6.9271, 181.0);
 
@@ -359,6 +384,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testUpdateLocation_InvalidLongitude_BelowMinus180() throws Exception {
         UpdateLocationRequest request = new UpdateLocationRequest(6.9271, -181.0);
 
@@ -370,6 +396,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testUpdateLocation_MissingFields() throws Exception {
         mockMvc.perform(patch("/api/drivers/driver-789/location")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -379,6 +406,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testUpdateLocation_MissingLatitude() throws Exception {
         mockMvc.perform(patch("/api/drivers/driver-789/location")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -388,6 +416,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testUpdateLocation_MissingLongitude() throws Exception {
         mockMvc.perform(patch("/api/drivers/driver-789/location")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -397,6 +426,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testUpdateLocation_BoundaryValues_Success() throws Exception {
         UpdateLocationRequest minBound = new UpdateLocationRequest(-90.0, -180.0);
         DriverResponse minResponse = new DriverResponse(
@@ -430,6 +460,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testUpdateLocation_MalformedJson() throws Exception {
         mockMvc.perform(patch("/api/drivers/driver-789/location")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -439,6 +470,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testGetAvailableDrivers_WithServiceArea_Success() throws Exception {
         DriverResponse driver1 = new DriverResponse(
                 "driver-01", "acc-1", "DL-111", "Colombo",
@@ -468,6 +500,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testGetAvailableDrivers_WithoutServiceArea_Success() throws Exception {
         DriverResponse driver1 = new DriverResponse(
                 "driver-01", "acc-1", "DL-111", "Colombo",
@@ -488,6 +521,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testGetAvailableDrivers_EmptyList() throws Exception {
         when(driverService.getAvailableDrivers("Galle")).thenReturn(Collections.emptyList());
 
@@ -499,6 +533,7 @@ class DriverControllerTest {
     }
 
     @Test
+    @WithMockUser(roles = "DRIVER")
     void testGetAvailableDrivers_DeterministicOrder() throws Exception {
         DriverResponse driver1 = new DriverResponse(
                 "driver-01", "acc-1", "DL-111", "Colombo",

@@ -1,5 +1,6 @@
 package com.ridelink.driver.service;
 
+import com.ridelink.driver.domain.Driver;
 import com.ridelink.driver.domain.Vehicle;
 import com.ridelink.driver.dto.VehicleRequest;
 import com.ridelink.driver.dto.VehicleResponse;
@@ -7,6 +8,9 @@ import com.ridelink.driver.exception.DuplicateResourceException;
 import com.ridelink.driver.exception.ResourceNotFoundException;
 import com.ridelink.driver.repository.DriverRepository;
 import com.ridelink.driver.repository.VehicleRepository;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -24,6 +28,8 @@ public class VehicleService {
         if (!driverRepository.existsById(driverId)) {
             throw new ResourceNotFoundException("Driver not found with id: " + driverId);
         }
+
+        validateDriverOwnership(driverId);
 
         if (vehicleRepository.existsByDriverId(driverId)) {
             throw new DuplicateResourceException("Vehicle already registered for driver id: " + driverId);
@@ -51,6 +57,8 @@ public class VehicleService {
             throw new ResourceNotFoundException("Driver not found with id: " + driverId);
         }
 
+        validateDriverOwnership(driverId);
+
         Vehicle vehicle = vehicleRepository.findByDriverId(driverId)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found for driver id: " + driverId));
 
@@ -68,6 +76,20 @@ public class VehicleService {
 
         Vehicle updatedVehicle = vehicleRepository.save(vehicle);
         return mapToVehicleResponse(updatedVehicle);
+    }
+
+    private void validateDriverOwnership(String driverId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+            return;
+        }
+        Driver driver = driverRepository.findById(driverId).orElse(null);
+        if (driver != null) {
+            String currentUserId = auth.getName();
+            if (driver.getAccountId() != null && !driver.getAccountId().equals(currentUserId)) {
+                throw new AccessDeniedException("Access denied: You do not own this driver resource");
+            }
+        }
     }
 
     private VehicleResponse mapToVehicleResponse(Vehicle vehicle) {

@@ -9,6 +9,9 @@ import com.ridelink.driver.dto.UpdateLocationRequest;
 import com.ridelink.driver.exception.DuplicateResourceException;
 import com.ridelink.driver.exception.ResourceNotFoundException;
 import com.ridelink.driver.repository.DriverRepository;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,6 +26,8 @@ public class DriverService {
     }
 
     public DriverResponse createDriver(CreateDriverRequest request) {
+        validateDriverOwnership(request.getAccountId());
+
         if (driverRepository.existsByAccountId(request.getAccountId())) {
             throw new DuplicateResourceException("Driver profile already exists for accountId: " + request.getAccountId());
         }
@@ -49,6 +54,8 @@ public class DriverService {
         Driver driver = driverRepository.findById(driverId)
                 .orElseThrow(() -> new ResourceNotFoundException("Driver not found with id: " + driverId));
 
+        validateDriverOwnership(driver.getAccountId());
+
         driver.setAvailability(request.getAvailability());
         Driver updatedDriver = driverRepository.save(driver);
         return mapToDriverResponse(updatedDriver);
@@ -58,10 +65,23 @@ public class DriverService {
         Driver driver = driverRepository.findById(driverId)
                 .orElseThrow(() -> new ResourceNotFoundException("Driver not found with id: " + driverId));
 
+        validateDriverOwnership(driver.getAccountId());
+
         driver.setLatitude(request.getLatitude());
         driver.setLongitude(request.getLongitude());
         Driver updatedDriver = driverRepository.save(driver);
         return mapToDriverResponse(updatedDriver);
+    }
+
+    private void validateDriverOwnership(String accountId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getPrincipal())) {
+            return;
+        }
+        String currentUserId = auth.getName();
+        if (accountId != null && !accountId.equals(currentUserId)) {
+            throw new AccessDeniedException("Access denied: You do not own this driver resource");
+        }
     }
 
     public List<DriverResponse> getAvailableDrivers(String serviceArea) {

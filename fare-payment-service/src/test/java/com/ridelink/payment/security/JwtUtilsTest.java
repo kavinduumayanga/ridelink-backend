@@ -50,4 +50,12 @@ class JwtUtilsTest {
         assertFalse(jwtUtils.validateToken(""));
         assertFalse(jwtUtils.validateToken("not.a.valid.jwt.token"));
     }
+
+    @Test
+    @DisplayName("Should reject token with unsupported role")
+    void testUnsupportedRole() {
+        String token = JwtTestHelper.generateToken("user-123", "SUPPORT");
+
+        assertFalse(jwtUtils.validateToken(token));
+    }
 }

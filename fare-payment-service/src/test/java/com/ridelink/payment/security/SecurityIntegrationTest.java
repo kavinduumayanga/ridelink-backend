@@ -138,19 +138,21 @@ class SecurityIntegrationTest {
     }
 
     @Test
-    @DisplayName("DRIVER role is denied access to create payment (403 FORBIDDEN)")
-    void testDriverDeniedCreatePayment() throws Exception {
+    @DisplayName("DRIVER role can create payment because the contract requires authentication only")
+    void testDriverCanCreatePayment() throws Exception {
         String driverToken = JwtTestHelper.generateToken("driver-123", "DRIVER");
         PaymentRequest request = new PaymentRequest("ride-1", "fare-1", 860.0, PaymentMethod.CASH);
+        PaymentResponse response = new PaymentResponse("payment-1", "ride-1", "fare-1", 860.0,
+                PaymentMethod.CASH, PaymentStatus.PAID, Instant.now());
+
+        when(paymentService.createPayment(any(PaymentRequest.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/payments")
                         .header("Authorization", "Bearer " + driverToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(403))
-                .andExpect(jsonPath("$.error").value("FORBIDDEN"))
-                .andExpect(jsonPath("$.message").value("Access denied: insufficient permissions"));
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.paymentId").value("payment-1"));
     }
 
     @Test
@@ -168,15 +170,18 @@ class SecurityIntegrationTest {
     }
 
     @Test
-    @DisplayName("DRIVER role is denied access to retrieve payment by ID (403 FORBIDDEN)")
-    void testDriverDeniedGetPaymentById() throws Exception {
+    @DisplayName("DRIVER role can retrieve payment by ID because the contract requires authentication only")
+    void testDriverCanGetPaymentById() throws Exception {
         String driverToken = JwtTestHelper.generateToken("driver-123", "DRIVER");
+        PaymentResponse response = new PaymentResponse("payment-1", "ride-1", "fare-1", 860.0,
+                PaymentMethod.CASH, PaymentStatus.PAID, Instant.now());
+
+        when(paymentService.getPaymentById("payment-1")).thenReturn(response);
 
         mockMvc.perform(get("/api/payments/payment-1")
                         .header("Authorization", "Bearer " + driverToken))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(403))
-                .andExpect(jsonPath("$.error").value("FORBIDDEN"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paymentId").value("payment-1"));
     }
 
     @Test
@@ -194,26 +199,43 @@ class SecurityIntegrationTest {
     }
 
     @Test
-    @DisplayName("DRIVER role is denied access to retrieve receipt (403 FORBIDDEN)")
-    void testDriverDeniedGetReceipt() throws Exception {
+    @DisplayName("DRIVER role can retrieve receipt because the contract requires authentication only")
+    void testDriverCanGetReceipt() throws Exception {
         String driverToken = JwtTestHelper.generateToken("driver-123", "DRIVER");
+        ReceiptResponse receipt = new ReceiptResponse("payment-1", "ride-1", 10.0, 200.0, 50.0,
+                700.0, PaymentMethod.CASH, PaymentStatus.PAID, Instant.now());
+
+        when(paymentService.getReceiptByPaymentId("payment-1")).thenReturn(receipt);
 
         mockMvc.perform(get("/api/payments/payment-1/receipt")
                         .header("Authorization", "Bearer " + driverToken))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(403))
-                .andExpect(jsonPath("$.error").value("FORBIDDEN"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.receiptId").value("payment-1"));
     }
 
     @Test
-    @DisplayName("Interservice fare estimation endpoint remains accessible without JWT for Ride Service calls")
-    void testFareEstimateAccessibleWithoutJwt() throws Exception {
+    @DisplayName("Interservice fare estimation endpoint requires the forwarded JWT")
+    void testFareEstimateRequiresJwt() throws Exception {
+        FareEstimateRequest request = new FareEstimateRequest("ride-1", 12.5);
+
+        mockMvc.perform(post("/api/fares/estimate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("UNAUTHENTICATED"));
+    }
+
+    @Test
+    @DisplayName("Interservice fare estimation accepts a forwarded PASSENGER JWT")
+    void testFareEstimateAcceptsPassengerJwt() throws Exception {
+        String passengerToken = JwtTestHelper.generateToken("passenger-123", "PASSENGER");
         FareEstimateRequest request = new FareEstimateRequest("ride-1", 12.5);
         FareResponse response = new FareResponse("fare-1", "ride-1", "ESTIMATE", 12.5, 200.0, 50.0, 825.0);
 
         when(fareCalculationService.estimateFare(any(FareEstimateRequest.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/fares/estimate")
+                        .header("Authorization", "Bearer " + passengerToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -222,14 +244,28 @@ class SecurityIntegrationTest {
     }
 
     @Test
-    @DisplayName("Interservice final fare endpoint remains accessible without JWT for Ride Service calls")
-    void testFinalFareAccessibleWithoutJwt() throws Exception {
+    @DisplayName("Interservice final fare endpoint requires the forwarded JWT")
+    void testFinalFareRequiresJwt() throws Exception {
+        FareFinalRequest request = new FareFinalRequest("ride-1", 13.2);
+
+        mockMvc.perform(post("/api/fares/final")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("UNAUTHENTICATED"));
+    }
+
+    @Test
+    @DisplayName("Interservice final fare accepts a forwarded DRIVER JWT")
+    void testFinalFareAcceptsDriverJwt() throws Exception {
+        String driverToken = JwtTestHelper.generateToken("driver-123", "DRIVER");
         FareFinalRequest request = new FareFinalRequest("ride-1", 13.2);
         FareResponse response = new FareResponse("fare-2", "ride-1", "FINAL", 13.2, 200.0, 50.0, 860.0);
 
         when(fareCalculationService.calculateFinalFare(any(FareFinalRequest.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/fares/final")
+                        .header("Authorization", "Bearer " + driverToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -252,15 +288,18 @@ class SecurityIntegrationTest {
     }
 
     @Test
-    @DisplayName("DRIVER role is denied access to retrieve payment by ride ID (403 FORBIDDEN)")
-    void testDriverDeniedGetPaymentByRideId() throws Exception {
+    @DisplayName("DRIVER role can retrieve payment by ride ID because the contract requires authentication only")
+    void testDriverCanGetPaymentByRideId() throws Exception {
         String driverToken = JwtTestHelper.generateToken("driver-123", "DRIVER");
+        PaymentResponse response = new PaymentResponse("payment-1", "ride-123", "fare-1", 860.0,
+                PaymentMethod.CASH, PaymentStatus.PAID, Instant.now());
+
+        when(paymentService.getPaymentByRideId("ride-123")).thenReturn(response);
 
         mockMvc.perform(get("/api/payments/ride/ride-123")
                         .header("Authorization", "Bearer " + driverToken))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.status").value(403))
-                .andExpect(jsonPath("$.error").value("FORBIDDEN"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rideId").value("ride-123"));
     }
 
     @Test

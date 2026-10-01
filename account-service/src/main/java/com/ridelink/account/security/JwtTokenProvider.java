@@ -11,34 +11,27 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 
 @Component
 public class JwtTokenProvider {
 
-    private final String secret;
+    private final SecretKey signingKey;
     private final long expirationMs;
 
     public JwtTokenProvider(
             @Value("${jwt.secret}") String secret,
             @Value("${jwt.expiration-ms:86400000}") long expirationMs) {
-        this.secret = secret;
+        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        if (keyBytes.length < 32) {
+            throw new IllegalArgumentException("JWT secret must be at least 32 bytes for HS256");
+        }
+        this.signingKey = Keys.hmacShaKeyFor(keyBytes);
         this.expirationMs = expirationMs;
     }
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
-        if (keyBytes.length < 32) {
-            try {
-                MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-                keyBytes = sha256.digest(keyBytes);
-            } catch (NoSuchAlgorithmException e) {
-                throw new IllegalStateException("SHA-256 algorithm not available", e);
-            }
-        }
-        return Keys.hmacShaKeyFor(keyBytes);
+        return signingKey;
     }
 
     public String generateToken(User user) {
@@ -54,7 +47,7 @@ public class JwtTokenProvider {
                 .claim("role", role.name())
                 .issuedAt(now)
                 .expiration(expiryDate)
-                .signWith(getSigningKey())
+                .signWith(getSigningKey(), Jwts.SIG.HS256)
                 .compact();
     }
 

@@ -2,10 +2,16 @@ package com.ridelink.driver.repository;
 
 import com.ridelink.driver.domain.Driver;
 import com.ridelink.driver.domain.DriverAvailability;
+import de.bwaldvogel.mongo.MongoServer;
+import de.bwaldvogel.mongo.backend.memory.MemoryBackend;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
+import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Optional;
 
@@ -13,6 +19,20 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @DataMongoTest
 public class DriverRepositoryTest {
+
+    private static final MongoServer MONGO_SERVER = new MongoServer(new MemoryBackend());
+    private static final InetSocketAddress MONGO_ADDRESS = MONGO_SERVER.bind();
+
+    @DynamicPropertySource
+    static void mongoProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.data.mongodb.uri", () -> "mongodb://"
+                + MONGO_ADDRESS.getHostString() + ":" + MONGO_ADDRESS.getPort() + "/driver_repository_test");
+    }
+
+    @AfterAll
+    static void stopMongoServer() {
+        MONGO_SERVER.shutdownNow();
+    }
 
     @Autowired
     private DriverRepository driverRepository;

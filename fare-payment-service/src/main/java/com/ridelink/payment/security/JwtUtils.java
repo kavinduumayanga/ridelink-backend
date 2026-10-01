@@ -9,19 +9,25 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.util.Set;
 
 @Component
 public class JwtUtils {
 
-    private final String jwtSecret;
+    private static final Set<String> VALID_ROLES = Set.of("PASSENGER", "DRIVER", "ADMIN");
 
-    public JwtUtils(@Value("${jwt.secret:dGhpcy1pcy1hLXNhZmUtZGV2ZWxvcG1lbnQtdGVzdC1qd3Qtc2VjcmV0LWtleS1mb3ItcmlkZWxpbms=}") String jwtSecret) {
-        this.jwtSecret = jwtSecret;
+    private final SecretKey signingKey;
+
+    public JwtUtils(@Value("${jwt.secret}") String jwtSecret) {
+        byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
+        if (keyBytes.length < 32) {
+            throw new IllegalArgumentException("JWT secret must be at least 32 bytes for HS256");
+        }
+        this.signingKey = Keys.hmacShaKeyFor(keyBytes);
     }
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
-        return Keys.hmacShaKeyFor(keyBytes);
+        return signingKey;
     }
 
     public boolean validateToken(String token) {
@@ -30,8 +36,9 @@ public class JwtUtils {
         }
         try {
             Claims claims = getClaims(token);
-            return claims != null && claims.getSubject() != null && !claims.getSubject().isBlank()
-                    && claims.get("role") != null && !claims.get("role", String.class).isBlank();
+            String role = claims.get("role", String.class);
+            return claims.getSubject() != null && !claims.getSubject().isBlank()
+                    && VALID_ROLES.contains(role);
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }

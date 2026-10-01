@@ -43,10 +43,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
                         // Public Swagger / OpenAPI documentation
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
-                        // Interservice fare estimation and calculation endpoints (called by Ride Service)
-                        .requestMatchers("/api/fares/**").permitAll()
-                        // Role-protected payment and receipt endpoints (PASSENGER and ADMIN only)
-                        .requestMatchers("/api/payments/**").hasAnyRole("PASSENGER", "ADMIN")
+                        // Ride Service forwards the caller JWT to fare endpoints.
+                        .requestMatchers("/api/fares/**").authenticated()
+                        // The frozen contract requires a bearer JWT but defines no role restriction.
+                        .requestMatchers("/api/payments/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

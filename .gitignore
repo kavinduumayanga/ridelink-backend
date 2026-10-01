@@ -15,6 +15,7 @@ target/
 # Logs
 *.log
 logs/
+.run/
 
 # IDE files
 .idea/
@@ -27,4 +28,3 @@ logs/
 # OS-generated files
 .DS_Store
 Thumbs.db
-

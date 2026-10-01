@@ -1,0 +1,2225 @@
+{
+  "info": {
+    "_postman_id": "7d7c5c1b-2cb1-4a06-a678-9ecb0913b2b7",
+    "name": "RideLink",
+    "description": "Final RideLink university demo collection. Run folders in numeric order with the RideLink Local environment. Register PASSENGER generates a fresh unique data set and clears captured runtime values.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "00 - Health / Documentation",
+      "description": "Public OpenAPI documents for all four services.",
+      "item": [
+        {
+          "name": "Account OpenAPI",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{accountBaseUrl}}/v3/api-docs",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"OpenAPI document is returned\", function () { pm.expect(json.openapi).to.be.a(\"string\"); pm.expect(json.info).to.be.an(\"object\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Driver OpenAPI",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{driverBaseUrl}}/v3/api-docs",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"OpenAPI document is returned\", function () { pm.expect(json.openapi).to.be.a(\"string\"); pm.expect(json.info).to.be.an(\"object\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ride OpenAPI",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{rideBaseUrl}}/v3/api-docs",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"OpenAPI document is returned\", function () { pm.expect(json.openapi).to.be.a(\"string\"); pm.expect(json.info).to.be.an(\"object\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Fare/Payment OpenAPI",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{paymentBaseUrl}}/v3/api-docs",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"OpenAPI document is returned\", function () { pm.expect(json.openapi).to.be.a(\"string\"); pm.expect(json.info).to.be.an(\"object\"); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Account Setup",
+      "description": "Creates unique PASSENGER and DRIVER accounts, then captures Account-owned IDs and JWTs.",
+      "item": [
+        {
+          "name": "Register PASSENGER",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/accounts/register",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Postman\",\n  \"lastName\": \"Passenger\",\n  \"email\": \"{{passengerEmail}}\",\n  \"phone\": \"+94770000101\",\n  \"password\": \"{{testPassword}}\",\n  \"role\": \"PASSENGER\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const password = pm.environment.get(\"testPassword\");",
+                  "if (!password) { throw new Error(\"Set testPassword in the selected RideLink Local environment before running setup.\"); }",
+                  "const stamp = Date.now() + \"-\" + Math.floor(Math.random() * 1000000);",
+                  "pm.environment.set(\"runId\", stamp);",
+                  "pm.environment.set(\"passengerEmail\", \"ridelink.postman.passenger.\" + stamp + \"@example.com\");",
+                  "pm.environment.set(\"driverEmail\", \"ridelink.postman.driver.\" + stamp + \"@example.com\");",
+                  "pm.environment.set(\"secondPassengerEmail\", \"ridelink.postman.passenger2.\" + stamp + \"@example.com\");",
+                  "pm.environment.set(\"serviceArea\", \"PostmanArea\" + stamp.replace(/[^0-9]/g, \"\"));",
+                  "pm.environment.set(\"noDriverServiceArea\", \"NoDriverArea\" + stamp.replace(/[^0-9]/g, \"\"));",
+                  "pm.environment.set(\"licenseNumber\", \"PM-DL-\" + stamp);",
+                  "pm.environment.set(\"licensePlate\", \"PM-\" + stamp);",
+                  "const hex = (Date.now().toString(16) + Math.floor(Math.random() * Number.MAX_SAFE_INTEGER).toString(16)).replace(/[^0-9a-f]/gi, \"\").padEnd(24, \"0\").slice(0, 24);",
+                  "pm.environment.set(\"nonexistentId\", hex);",
+                  "[\"passengerId\",\"passengerToken\",\"driverAccountId\",\"driverToken\",\"driverId\",\"rideId\",\"estimatedFare\",\"finalFare\",\"finalFareId\",\"paymentId\",\"secondPassengerId\",\"secondPassengerToken\",\"transitionRideId\",\"noDriverRideId\",\"failureRideId\",\"failureFinalFare\",\"failureFinalFareId\",\"failedPaymentId\"].forEach(function (key) { pm.environment.unset(key); });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Passenger ID exists\", function () { pm.expect(json.userId).to.be.a(\"string\").and.not.empty; });",
+                  "pm.test(\"Role is PASSENGER\", function () { pm.expect(json.role).to.eql(\"PASSENGER\"); });",
+                  "pm.environment.set(\"passengerId\", json.userId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login PASSENGER",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/accounts/login",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{passengerEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Passenger login identity matches registration\", function () { pm.expect(json.userId).to.eql(pm.environment.get(\"passengerId\")); pm.expect(json.role).to.eql(\"PASSENGER\"); });",
+                  "pm.test(\"Passenger JWT exists\", function () { pm.expect(json.token).to.be.a(\"string\").and.not.empty; });",
+                  "pm.environment.set(\"passengerToken\", json.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register DRIVER",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/accounts/register",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Postman\",\n  \"lastName\": \"Driver\",\n  \"email\": \"{{driverEmail}}\",\n  \"phone\": \"+94770000102\",\n  \"password\": \"{{testPassword}}\",\n  \"role\": \"DRIVER\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Driver account ID exists\", function () { pm.expect(json.userId).to.be.a(\"string\").and.not.empty; });",
+                  "pm.test(\"Role is DRIVER\", function () { pm.expect(json.role).to.eql(\"DRIVER\"); });",
+                  "pm.environment.set(\"driverAccountId\", json.userId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login DRIVER",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/accounts/login",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{driverEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Driver login identity matches registration\", function () { pm.expect(json.userId).to.eql(pm.environment.get(\"driverAccountId\")); pm.expect(json.role).to.eql(\"DRIVER\"); });",
+                  "pm.test(\"Driver JWT exists\", function () { pm.expect(json.token).to.be.a(\"string\").and.not.empty; });",
+                  "pm.environment.set(\"driverToken\", json.token);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Driver Setup",
+      "description": "Creates the Driver-owned operational profile and vehicle, then makes the driver eligible for assignment.",
+      "item": [
+        {
+          "name": "Create Driver Operational Profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{driverBaseUrl}}/api/drivers",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driverToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{driverAccountId}}\",\n  \"licenseNumber\": \"{{licenseNumber}}\",\n  \"serviceArea\": \"{{serviceArea}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Driver profile references Account user\", function () { pm.expect(json.accountId).to.eql(pm.environment.get(\"driverAccountId\")); });",
+                  "pm.test(\"Driver starts UNAVAILABLE\", function () { pm.expect(json.availability).to.eql(\"UNAVAILABLE\"); });",
+                  "pm.test(\"Driver ID exists\", function () { pm.expect(json.driverId).to.be.a(\"string\").and.not.empty; });",
+                  "pm.environment.set(\"driverId\", json.driverId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add / Configure Vehicle",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{driverBaseUrl}}/api/drivers/{{driverId}}/vehicle",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driverToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"licensePlate\": \"{{licensePlate}}\",\n  \"make\": \"Toyota\",\n  \"model\": \"Prius\",\n  \"year\": 2022,\n  \"color\": \"White\",\n  \"vehicleType\": \"CAR\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Vehicle ID exists and belongs to driver\", function () { pm.expect(json.vehicleId).to.be.a(\"string\").and.not.empty; pm.expect(json.driverId).to.eql(pm.environment.get(\"driverId\")); });",
+                  "pm.test(\"Vehicle type is CAR\", function () { pm.expect(json.vehicleType).to.eql(\"CAR\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Simulated Location",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{driverBaseUrl}}/api/drivers/{{driverId}}/location",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driverToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": 6.9271,\n  \"longitude\": 79.8612\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Location updated exactly\", function () { pm.expect(json.latitude).to.eql(6.9271); pm.expect(json.longitude).to.eql(79.8612); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Set AVAILABLE",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{driverBaseUrl}}/api/drivers/{{driverId}}/availability",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driverToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"availability\": \"AVAILABLE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Driver is AVAILABLE\", function () { pm.expect(json.availability).to.eql(\"AVAILABLE\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Available Drivers",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{driverBaseUrl}}/api/drivers/available?serviceArea={{serviceArea}}",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Response is an array\", function () { pm.expect(json).to.be.an(\"array\"); });",
+                  "pm.test(\"Created driver is available\", function () { pm.expect(json.some(function (d) { return d.driverId === pm.environment.get(\"driverId\"); })).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Ride Happy Path",
+      "description": "Runs the contracted REQUESTED → ASSIGNED → ACCEPTED → IN_PROGRESS → COMPLETED lifecycle.",
+      "item": [
+        {
+          "name": "Create Ride",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{rideBaseUrl}}/api/rides",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"passengerId\": \"{{passengerId}}\",\n  \"pickupLocation\": \"{{serviceArea}}\",\n  \"dropoffLocation\": \"Postman Destination\",\n  \"pickupLatitude\": 6.9271,\n  \"pickupLongitude\": 79.8612,\n  \"dropoffLatitude\": 6.9000,\n  \"dropoffLongitude\": 79.8700,\n  \"distanceKm\": 5.5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Ride ID exists\", function () { pm.expect(json.rideId).to.be.a(\"string\").and.not.empty; });",
+                  "pm.test(\"Ride begins REQUESTED\", function () { pm.expect(json.status).to.eql(\"REQUESTED\"); });",
+                  "pm.test(\"Estimated fare is populated\", function () { pm.expect(json.estimatedFare).to.be.a(\"number\").and.above(0); });",
+                  "pm.test(\"Final fare fields are null\", function () { pm.expect(json.finalFare).to.eql(null); pm.expect(json.finalFareId).to.eql(null); });",
+                  "pm.environment.set(\"rideId\", json.rideId);",
+                  "pm.environment.set(\"estimatedFare\", json.estimatedFare);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Ride",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{rideBaseUrl}}/api/rides/{{rideId}}",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Retrieved requested ride\", function () { pm.expect(json.rideId).to.eql(pm.environment.get(\"rideId\")); pm.expect(json.status).to.eql(\"REQUESTED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Assign Driver",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{rideBaseUrl}}/api/rides/{{rideId}}/assign",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Ride is ASSIGNED\", function () { pm.expect(json.status).to.eql(\"ASSIGNED\"); });",
+                  "pm.test(\"Expected driver selected\", function () { pm.expect(json.driverId).to.eql(pm.environment.get(\"driverId\")); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Accept Ride",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{rideBaseUrl}}/api/rides/{{rideId}}/accept",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driverToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Ride is ACCEPTED\", function () { pm.expect(pm.response.json().status).to.eql(\"ACCEPTED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Start Ride",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{rideBaseUrl}}/api/rides/{{rideId}}/start",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driverToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Ride is IN_PROGRESS\", function () { pm.expect(pm.response.json().status).to.eql(\"IN_PROGRESS\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Complete Ride",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{rideBaseUrl}}/api/rides/{{rideId}}/complete",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driverToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Ride is COMPLETED\", function () { pm.expect(json.status).to.eql(\"COMPLETED\"); });",
+                  "pm.test(\"Final fare is populated\", function () { pm.expect(json.finalFare).to.be.a(\"number\").and.above(0); });",
+                  "pm.test(\"Authoritative final fare ID exists\", function () { pm.expect(json.finalFareId).to.be.a(\"string\").and.not.empty; });",
+                  "pm.environment.set(\"finalFare\", json.finalFare);",
+                  "pm.environment.set(\"finalFareId\", json.finalFareId);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 - Payment Happy Path",
+      "description": "Pays the completed happy-path ride using Ride.finalFareId and Ride.finalFare.",
+      "item": [
+        {
+          "name": "Create Successful Simulated Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{paymentBaseUrl}}/api/payments",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rideId\": \"{{rideId}}\",\n  \"fareId\": \"{{finalFareId}}\",\n  \"amount\": {{finalFare}},\n  \"paymentMethod\": \"CASH\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Payment ID exists\", function () { pm.expect(json.paymentId).to.be.a(\"string\").and.not.empty; });",
+                  "pm.test(\"Payment is PAID\", function () { pm.expect(json.paymentStatus).to.eql(\"PAID\"); });",
+                  "pm.test(\"Payment references authoritative IDs and amount\", function () { pm.expect(json.rideId).to.eql(pm.environment.get(\"rideId\")); pm.expect(json.fareId).to.eql(pm.environment.get(\"finalFareId\")); pm.expect(json.amount).to.eql(Number(pm.environment.get(\"finalFare\"))); });",
+                  "pm.environment.set(\"paymentId\", json.paymentId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Payment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{paymentBaseUrl}}/api/payments/{{paymentId}}",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Retrieved same PAID payment\", function () { pm.expect(json.paymentId).to.eql(pm.environment.get(\"paymentId\")); pm.expect(json.paymentStatus).to.eql(\"PAID\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Receipt",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{paymentBaseUrl}}/api/payments/{{paymentId}}/receipt",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Receipt matches payment and ride\", function () { pm.expect(json.receiptId).to.eql(pm.environment.get(\"paymentId\")); pm.expect(json.rideId).to.eql(pm.environment.get(\"rideId\")); });",
+                  "pm.test(\"Receipt is PAID with correct total\", function () { pm.expect(json.paymentStatus).to.eql(\"PAID\"); pm.expect(json.totalFare).to.eql(Number(pm.environment.get(\"finalFare\"))); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 - Negative Security",
+      "description": "Security failures use read-only or rejected operations and preserve happy-path variables.",
+      "item": [
+        {
+          "name": "Protected Account Endpoint Without JWT",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{accountBaseUrl}}/api/accounts/{{passengerId}}",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", function () { pm.response.to.have.status(401); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error code is UNAUTHENTICATED\", function () { pm.expect(json.error).to.eql(\"UNAUTHENTICATED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Protected Ride Endpoint With Malformed JWT",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{rideBaseUrl}}/api/rides/{{rideId}}",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "not.a.valid.jwt",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", function () { pm.response.to.have.status(401); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error code is UNAUTHENTICATED\", function () { pm.expect(json.error).to.eql(\"UNAUTHENTICATED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PASSENGER Calls DRIVER-only Availability Update",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{driverBaseUrl}}/api/drivers/{{driverId}}/availability",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"availability\": \"UNAVAILABLE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", function () { pm.response.to.have.status(403); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error code is FORBIDDEN\", function () { pm.expect(json.error).to.eql(\"FORBIDDEN\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify Driver Remains AVAILABLE",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{driverBaseUrl}}/api/drivers/{{driverId}}",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Forbidden update caused no mutation\", function () { pm.expect(pm.response.json().availability).to.eql(\"AVAILABLE\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "PASSENGER Calls DRIVER-only Ride Accept",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{rideBaseUrl}}/api/rides/{{rideId}}/accept",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", function () { pm.response.to.have.status(403); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error code is FORBIDDEN\", function () { pm.expect(json.error).to.eql(\"FORBIDDEN\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify Happy Ride Remains COMPLETED",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{rideBaseUrl}}/api/rides/{{rideId}}",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Forbidden lifecycle call caused no mutation\", function () { pm.expect(pm.response.json().status).to.eql(\"COMPLETED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register Second PASSENGER",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/accounts/register",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Postman\",\n  \"lastName\": \"PassengerTwo\",\n  \"email\": \"{{secondPassengerEmail}}\",\n  \"phone\": \"+94770000103\",\n  \"password\": \"{{testPassword}}\",\n  \"role\": \"PASSENGER\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Second passenger ID exists\", function () { pm.expect(json.userId).to.be.a(\"string\").and.not.empty; });",
+                  "pm.environment.set(\"secondPassengerId\", json.userId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Second PASSENGER",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/accounts/login",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{secondPassengerEmail}}\",\n  \"password\": \"{{testPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Second passenger JWT exists\", function () { pm.expect(json.token).to.be.a(\"string\").and.not.empty; });",
+                  "pm.environment.set(\"secondPassengerToken\", json.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ownership Violation - Read Other Account",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{accountBaseUrl}}/api/accounts/{{passengerId}}",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{secondPassengerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", function () { pm.response.to.have.status(403); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error code is FORBIDDEN\", function () { pm.expect(json.error).to.eql(\"FORBIDDEN\"); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06 - Negative Ride",
+      "description": "Uses dedicated rides so invalid transitions and no-driver checks do not alter the completed happy-path ride.",
+      "item": [
+        {
+          "name": "Invalid Ride Input",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{rideBaseUrl}}/api/rides",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"passengerId\": \"{{passengerId}}\",\n  \"pickupLocation\": \"{{serviceArea}}\",\n  \"dropoffLocation\": \"Invalid Destination\",\n  \"pickupLatitude\": 6.9271,\n  \"pickupLongitude\": 79.8612,\n  \"dropoffLatitude\": 6.9000,\n  \"dropoffLongitude\": 79.8700,\n  \"distanceKm\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", function () { pm.response.to.have.status(400); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error code is VALIDATION_ERROR\", function () { pm.expect(json.error).to.eql(\"VALIDATION_ERROR\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Transition-Test Ride",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{rideBaseUrl}}/api/rides",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"passengerId\": \"{{passengerId}}\",\n  \"pickupLocation\": \"{{serviceArea}}\",\n  \"dropoffLocation\": \"Transition Destination\",\n  \"pickupLatitude\": 6.9271,\n  \"pickupLongitude\": 79.8612,\n  \"dropoffLatitude\": 6.9000,\n  \"dropoffLongitude\": 79.8700,\n  \"distanceKm\": 3.5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Transition ride begins REQUESTED\", function () { pm.expect(json.status).to.eql(\"REQUESTED\"); });",
+                  "pm.environment.set(\"transitionRideId\", json.rideId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Assign Transition-Test Ride",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{rideBaseUrl}}/api/rides/{{transitionRideId}}/assign",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Transition ride is ASSIGNED\", function () { pm.expect(pm.response.json().status).to.eql(\"ASSIGNED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid Lifecycle - Start Before Accept",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{rideBaseUrl}}/api/rides/{{transitionRideId}}/start",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driverToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", function () { pm.response.to.have.status(409); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error code is CONFLICT\", function () { pm.expect(json.error).to.eql(\"CONFLICT\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify Transition Ride Remains ASSIGNED",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{rideBaseUrl}}/api/rides/{{transitionRideId}}",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Invalid transition caused no mutation\", function () { pm.expect(pm.response.json().status).to.eql(\"ASSIGNED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create No-Driver Ride",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{rideBaseUrl}}/api/rides",
+            "description": "Uses a generated service area that has no configured driver.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"passengerId\": \"{{passengerId}}\",\n  \"pickupLocation\": \"{{noDriverServiceArea}}\",\n  \"dropoffLocation\": \"No Driver Destination\",\n  \"pickupLatitude\": 6.9271,\n  \"pickupLongitude\": 79.8612,\n  \"dropoffLatitude\": 6.9000,\n  \"dropoffLongitude\": 79.8700,\n  \"distanceKm\": 2.5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"No-driver ride begins REQUESTED\", function () { pm.expect(json.status).to.eql(\"REQUESTED\"); pm.expect(json.driverId).to.eql(null); });",
+                  "pm.environment.set(\"noDriverRideId\", json.rideId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Assign With No Available Driver",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{rideBaseUrl}}/api/rides/{{noDriverRideId}}/assign",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", function () { pm.response.to.have.status(404); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error code is NOT_FOUND\", function () { pm.expect(json.error).to.eql(\"NOT_FOUND\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify No-Driver Ride Remains REQUESTED",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{rideBaseUrl}}/api/rides/{{noDriverRideId}}",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Assignment failure caused no mutation\", function () { pm.expect(json.status).to.eql(\"REQUESTED\"); pm.expect(json.driverId).to.eql(null); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "07 - Negative Driver",
+      "description": "Driver validation and missing-resource checks.",
+      "item": [
+        {
+          "name": "Invalid Simulated Latitude",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{driverBaseUrl}}/api/drivers/{{driverId}}/location",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driverToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": 91.0,\n  \"longitude\": 79.8612\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", function () { pm.response.to.have.status(400); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error code is VALIDATION_ERROR\", function () { pm.expect(json.error).to.eql(\"VALIDATION_ERROR\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify Previous Driver Location",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{driverBaseUrl}}/api/drivers/{{driverId}}",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driverToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Invalid location caused no mutation\", function () { pm.expect(json.latitude).to.eql(6.9271); pm.expect(json.longitude).to.eql(79.8612); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Nonexistent Driver",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{driverBaseUrl}}/api/drivers/{{nonexistentId}}",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", function () { pm.response.to.have.status(404); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error code is NOT_FOUND\", function () { pm.expect(json.error).to.eql(\"NOT_FOUND\"); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "08 - Negative Account",
+      "description": "Account authentication, duplicate, and missing-resource behavior.",
+      "item": [
+        {
+          "name": "Invalid Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/accounts/login",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{passengerEmail}}\",\n  \"password\": \"{{invalidPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", function () { pm.response.to.have.status(401); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error code is UNAUTHENTICATED\", function () { pm.expect(json.error).to.eql(\"UNAUTHENTICATED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Duplicate Email Registration",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{accountBaseUrl}}/api/accounts/register",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Duplicate\",\n  \"lastName\": \"Passenger\",\n  \"email\": \"{{passengerEmail}}\",\n  \"phone\": \"+94770000104\",\n  \"password\": \"{{testPassword}}\",\n  \"role\": \"PASSENGER\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", function () { pm.response.to.have.status(409); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error code is CONFLICT\", function () { pm.expect(json.error).to.eql(\"CONFLICT\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Nonexistent User - ADMIN Prerequisite",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{accountBaseUrl}}/api/accounts/{{nonexistentId}}",
+            "description": "Manual conditional request. Account ownership rules require an ADMIN JWT to reach the nonexistent-user lookup. Set adminToken only if an ADMIN token is available; public registration intentionally cannot create ADMIN accounts.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const adminToken = pm.environment.get(\"adminToken\");",
+                  "if (adminToken) { pm.test(\"HTTP 404\", function () { pm.response.to.have.status(404); }); pm.test(\"Error code is NOT_FOUND\", function () { pm.expect(pm.response.json().error).to.eql(\"NOT_FOUND\"); }); } else { console.warn(\"Skipped 404 assertion: adminToken is blank.\"); }"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "09 - Negative Payment",
+      "description": "Creates a separate completed ride exclusively for negative payment cases. Do not substitute the happy-path rideId because it already has a PAID payment.",
+      "item": [
+        {
+          "name": "Create Failure-Test Ride",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{rideBaseUrl}}/api/rides",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"passengerId\": \"{{passengerId}}\",\n  \"pickupLocation\": \"{{serviceArea}}\",\n  \"dropoffLocation\": \"Failure Payment Destination\",\n  \"pickupLatitude\": 6.9271,\n  \"pickupLongitude\": 79.8612,\n  \"dropoffLatitude\": 6.9000,\n  \"dropoffLongitude\": 79.8700,\n  \"distanceKm\": 4.5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Failure-test ride begins REQUESTED\", function () { pm.expect(json.status).to.eql(\"REQUESTED\"); });",
+                  "pm.environment.set(\"failureRideId\", json.rideId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Assign Failure-Test Ride",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{rideBaseUrl}}/api/rides/{{failureRideId}}/assign",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Failure-test ride is ASSIGNED\", function () { pm.expect(pm.response.json().status).to.eql(\"ASSIGNED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Accept Failure-Test Ride",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{rideBaseUrl}}/api/rides/{{failureRideId}}/accept",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driverToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Failure-test ride is ACCEPTED\", function () { pm.expect(pm.response.json().status).to.eql(\"ACCEPTED\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Start Failure-Test Ride",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{rideBaseUrl}}/api/rides/{{failureRideId}}/start",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driverToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Failure-test ride is IN_PROGRESS\", function () { pm.expect(pm.response.json().status).to.eql(\"IN_PROGRESS\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Complete Failure-Test Ride",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": "{{rideBaseUrl}}/api/rides/{{failureRideId}}/complete",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{driverToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Failure-test ride is COMPLETED\", function () { pm.expect(json.status).to.eql(\"COMPLETED\"); });",
+                  "pm.test(\"Failure-test fare data exists\", function () { pm.expect(json.finalFare).to.be.a(\"number\").and.above(0); pm.expect(json.finalFareId).to.be.a(\"string\").and.not.empty; });",
+                  "pm.environment.set(\"failureFinalFare\", json.finalFare);",
+                  "pm.environment.set(\"failureFinalFareId\", json.finalFareId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid Payment Amount",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{paymentBaseUrl}}/api/payments",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rideId\": \"{{failureRideId}}\",\n  \"fareId\": \"{{failureFinalFareId}}\",\n  \"amount\": 0,\n  \"paymentMethod\": \"CASH\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", function () { pm.response.to.have.status(400); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error code is VALIDATION_ERROR\", function () { pm.expect(json.error).to.eql(\"VALIDATION_ERROR\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Nonexistent Fare ID",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{paymentBaseUrl}}/api/payments",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rideId\": \"{{failureRideId}}\",\n  \"fareId\": \"{{nonexistentId}}\",\n  \"amount\": {{failureFinalFare}},\n  \"paymentMethod\": \"CASH\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", function () { pm.response.to.have.status(404); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error code is NOT_FOUND\", function () { pm.expect(json.error).to.eql(\"NOT_FOUND\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify Rejected Payments Were Not Persisted",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{paymentBaseUrl}}/api/payments/ride/{{failureRideId}}",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", function () { pm.response.to.have.status(404); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error code is NOT_FOUND\", function () { pm.expect(json.error).to.eql(\"NOT_FOUND\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Simulated FAILED Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{paymentBaseUrl}}/api/payments",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rideId\": \"{{failureRideId}}\",\n  \"fareId\": \"{{failureFinalFareId}}\",\n  \"amount\": {{failureFinalFare}},\n  \"paymentMethod\": \"CARD_SIMULATED\",\n  \"simulateFailure\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.response.to.have.status(201); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Failed payment ID exists\", function () { pm.expect(json.paymentId).to.be.a(\"string\").and.not.empty; });",
+                  "pm.test(\"Payment status is FAILED and never PAID\", function () { pm.expect(json.paymentStatus).to.eql(\"FAILED\"); pm.expect(json.paymentStatus).not.to.eql(\"PAID\"); });",
+                  "pm.test(\"Failed payment paidAt is null\", function () { pm.expect(json.paidAt).to.eql(null); });",
+                  "pm.environment.set(\"failedPaymentId\", json.paymentId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Retrieve FAILED Payment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{paymentBaseUrl}}/api/payments/{{failedPaymentId}}",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Same failed payment is retrieved\", function () { pm.expect(json.paymentId).to.eql(pm.environment.get(\"failedPaymentId\")); });",
+                  "pm.test(\"Persisted status remains FAILED\", function () { pm.expect(json.paymentStatus).to.eql(\"FAILED\"); pm.expect(json.paymentStatus).not.to.eql(\"PAID\"); });",
+                  "pm.test(\"Persisted paidAt remains null\", function () { pm.expect(json.paidAt).to.eql(null); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Receipt for FAILED Payment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{paymentBaseUrl}}/api/payments/{{failedPaymentId}}/receipt",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{passengerToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 409\", function () { pm.response.to.have.status(409); });",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Error code is CONFLICT\", function () { pm.expect(json.error).to.eql(\"CONFLICT\"); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+

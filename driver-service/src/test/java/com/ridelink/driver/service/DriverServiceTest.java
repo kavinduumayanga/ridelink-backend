@@ -235,53 +235,6 @@ class DriverServiceTest {
     }
 
     @Test
-    void testGetAvailableDrivers_WithoutServiceArea_ReturnsAllAvailableDrivers() {
-        Driver d1 = new Driver();
-        d1.setDriverId("driver-01");
-        d1.setAccountId("acc-1");
-        d1.setServiceArea("Colombo");
-        d1.setAvailability(DriverAvailability.AVAILABLE);
-
-        Driver d2 = new Driver();
-        d2.setDriverId("driver-02");
-        d2.setAccountId("acc-2");
-        d2.setServiceArea("Kandy");
-        d2.setAvailability(DriverAvailability.AVAILABLE);
-
-        when(driverRepository.findByAvailabilityOrderByDriverIdAsc(DriverAvailability.AVAILABLE))
-                .thenReturn(List.of(d1, d2));
-
-        List<DriverResponse> result = driverService.getAvailableDrivers(null);
-
-        assertNotNull(result);
-        assertEquals(2, result.size());
-        assertEquals("driver-01", result.get(0).getDriverId());
-        assertEquals("driver-02", result.get(1).getDriverId());
-
-        verify(driverRepository, times(1))
-                .findByAvailabilityOrderByDriverIdAsc(DriverAvailability.AVAILABLE);
-    }
-
-    @Test
-    void testGetAvailableDrivers_BlankServiceArea_ReturnsAllAvailableDrivers() {
-        Driver d1 = new Driver();
-        d1.setDriverId("driver-01");
-        d1.setAvailability(DriverAvailability.AVAILABLE);
-
-        when(driverRepository.findByAvailabilityOrderByDriverIdAsc(DriverAvailability.AVAILABLE))
-                .thenReturn(List.of(d1));
-
-        List<DriverResponse> result = driverService.getAvailableDrivers("   ");
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals("driver-01", result.get(0).getDriverId());
-
-        verify(driverRepository, times(1))
-                .findByAvailabilityOrderByDriverIdAsc(DriverAvailability.AVAILABLE);
-    }
-
-    @Test
     void testGetAvailableDrivers_ExcludesUnavailableDrivers() {
         when(driverRepository.findByAvailabilityAndServiceAreaOrderByDriverIdAsc(DriverAvailability.AVAILABLE, "Colombo"))
                 .thenReturn(List.of());
@@ -292,10 +245,6 @@ class DriverServiceTest {
         assertTrue(result.isEmpty());
         verify(driverRepository, times(1))
                 .findByAvailabilityAndServiceAreaOrderByDriverIdAsc(eq(DriverAvailability.AVAILABLE), eq("Colombo"));
-        verify(driverRepository, never())
-                .findByAvailability(eq(DriverAvailability.UNAVAILABLE));
-        verify(driverRepository, never())
-                .findByAvailabilityAndServiceArea(eq(DriverAvailability.UNAVAILABLE), anyString());
     }
 
     @Test
@@ -303,24 +252,30 @@ class DriverServiceTest {
         Driver d1 = new Driver();
         d1.setDriverId("driver-01");
         d1.setAvailability(DriverAvailability.AVAILABLE);
+        d1.setServiceArea("Colombo");
 
         Driver d2 = new Driver();
         d2.setDriverId("driver-02");
         d2.setAvailability(DriverAvailability.AVAILABLE);
+        d2.setServiceArea("Colombo");
 
         Driver d3 = new Driver();
         d3.setDriverId("driver-03");
         d3.setAvailability(DriverAvailability.AVAILABLE);
+        d3.setServiceArea("Colombo");
 
-        when(driverRepository.findByAvailabilityOrderByDriverIdAsc(DriverAvailability.AVAILABLE))
+        when(driverRepository.findByAvailabilityAndServiceAreaOrderByDriverIdAsc(DriverAvailability.AVAILABLE, "Colombo"))
                 .thenReturn(List.of(d1, d2, d3));
 
-        List<DriverResponse> result = driverService.getAvailableDrivers(null);
+        List<DriverResponse> result = driverService.getAvailableDrivers("Colombo");
 
         assertEquals(3, result.size());
         assertEquals("driver-01", result.get(0).getDriverId());
         assertEquals("driver-02", result.get(1).getDriverId());
         assertEquals("driver-03", result.get(2).getDriverId());
+
+        verify(driverRepository, times(1))
+                .findByAvailabilityAndServiceAreaOrderByDriverIdAsc(DriverAvailability.AVAILABLE, "Colombo");
     }
 
     @Test

@@ -85,13 +85,8 @@ public class DriverService {
     }
 
     public List<DriverResponse> getAvailableDrivers(String serviceArea) {
-        List<Driver> drivers;
-        if (serviceArea != null && !serviceArea.trim().isEmpty()) {
-            drivers = driverRepository.findByAvailabilityAndServiceAreaOrderByDriverIdAsc(
-                    DriverAvailability.AVAILABLE, serviceArea.trim());
-        } else {
-            drivers = driverRepository.findByAvailabilityOrderByDriverIdAsc(DriverAvailability.AVAILABLE);
-        }
+        List<Driver> drivers = driverRepository.findByAvailabilityAndServiceAreaOrderByDriverIdAsc(
+                DriverAvailability.AVAILABLE, serviceArea.trim());
 
         return drivers.stream()
                 .map(this::mapToDriverResponse)

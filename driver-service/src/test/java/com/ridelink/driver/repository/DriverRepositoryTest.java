@@ -30,7 +30,7 @@ public class DriverRepositoryTest {
         Driver savedDriver = driverRepository.save(driver);
         assertNotNull(savedDriver.getDriverId());
 
-        List<Driver> availableDrivers = driverRepository.findByAvailabilityAndServiceArea(DriverAvailability.AVAILABLE, "Colombo");
+        List<Driver> availableDrivers = driverRepository.findByAvailabilityAndServiceAreaOrderByDriverIdAsc(DriverAvailability.AVAILABLE, "Colombo");
         assertFalse(availableDrivers.isEmpty());
         assertEquals("Colombo", availableDrivers.get(0).getServiceArea());
 
@@ -95,47 +95,25 @@ public class DriverRepositoryTest {
     }
 
     @Test
-    public void testFindByAvailabilityOrderByDriverIdAsc() {
+    public void testFindByAccountIdAndExistsByAccountId() {
         Driver d1 = new Driver();
-        d1.setAccountId("acc-avail-order-1");
-        d1.setLicenseNumber("DL-ORD-1");
+        d1.setAccountId("acc-lookup-1");
+        d1.setLicenseNumber("DL-LK-1");
         d1.setServiceArea("Colombo");
         d1.setAvailability(DriverAvailability.AVAILABLE);
 
-        Driver d2 = new Driver();
-        d2.setAccountId("acc-avail-order-2");
-        d2.setLicenseNumber("DL-ORD-2");
-        d2.setServiceArea("Kandy");
-        d2.setAvailability(DriverAvailability.AVAILABLE);
+        Driver saved = driverRepository.save(d1);
 
-        Driver d3 = new Driver();
-        d3.setAccountId("acc-avail-order-3");
-        d3.setLicenseNumber("DL-ORD-3");
-        d3.setServiceArea("Colombo");
-        d3.setAvailability(DriverAvailability.UNAVAILABLE);
+        assertTrue(driverRepository.existsByAccountId("acc-lookup-1"));
+        assertFalse(driverRepository.existsByAccountId("acc-nonexistent"));
 
-        Driver saved1 = driverRepository.save(d1);
-        Driver saved2 = driverRepository.save(d2);
-        Driver saved3 = driverRepository.save(d3);
-
-        List<Driver> available = driverRepository.findByAvailabilityOrderByDriverIdAsc(DriverAvailability.AVAILABLE);
-        assertFalse(available.isEmpty());
-
-        // All returned drivers must be AVAILABLE
-        assertTrue(available.stream().allMatch(d -> d.getAvailability() == DriverAvailability.AVAILABLE));
-
-        // UNAVAILABLE driver must never appear
-        assertFalse(available.stream().anyMatch(d -> d.getDriverId().equals(saved3.getDriverId())));
-
-        // Results must be ordered by driverId ascending
-        for (int i = 0; i < available.size() - 1; i++) {
-            assertTrue(available.get(i).getDriverId().compareTo(available.get(i + 1).getDriverId()) <= 0);
-        }
+        Optional<Driver> found = driverRepository.findByAccountId("acc-lookup-1");
+        assertTrue(found.isPresent());
+        assertEquals("acc-lookup-1", found.get().getAccountId());
+        assertEquals("DL-LK-1", found.get().getLicenseNumber());
 
         // Cleanup
-        driverRepository.delete(saved1);
-        driverRepository.delete(saved2);
-        driverRepository.delete(saved3);
+        driverRepository.delete(saved);
     }
 
     @Test

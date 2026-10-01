@@ -1,29 +1,37 @@
 package com.ridelink.driver.dto;
 
 import com.ridelink.driver.domain.VehicleType;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
+@Schema(description = "Request payload for creating or updating a vehicle")
 public class VehicleRequest {
 
     @NotBlank(message = "licensePlate is required")
+    @Schema(description = "Vehicle license plate number", example = "CAB-1234")
     private String licensePlate;
 
     @NotBlank(message = "make is required")
+    @Schema(description = "Vehicle manufacturer/make", example = "Toyota")
     private String make;
 
     @NotBlank(message = "model is required")
+    @Schema(description = "Vehicle model", example = "Prius")
     private String model;
 
     @NotNull(message = "year is required")
     @Positive(message = "year must be positive")
+    @Schema(description = "Manufacturing year", example = "2020")
     private Integer year;
 
     @NotBlank(message = "color is required")
+    @Schema(description = "Vehicle color", example = "White")
     private String color;
 
     @NotNull(message = "vehicleType is required")
+    @Schema(description = "Type of vehicle", example = "CAR")
     private VehicleType vehicleType;
 
     public VehicleRequest() {

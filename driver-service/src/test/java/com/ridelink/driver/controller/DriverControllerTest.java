@@ -26,8 +26,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.web.servlet.MockMvc;
-
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -501,23 +499,9 @@ class DriverControllerTest {
 
     @Test
     @WithMockUser(roles = "DRIVER")
-    void testGetAvailableDrivers_WithoutServiceArea_Success() throws Exception {
-        DriverResponse driver1 = new DriverResponse(
-                "driver-01", "acc-1", "DL-111", "Colombo",
-                DriverAvailability.AVAILABLE, 6.9271, 79.8612
-        );
-        DriverResponse driver2 = new DriverResponse(
-                "driver-02", "acc-2", "DL-222", "Kandy",
-                DriverAvailability.AVAILABLE, 7.2906, 80.6337
-        );
-
-        when(driverService.getAvailableDrivers(null)).thenReturn(List.of(driver1, driver2));
-
+    void testGetAvailableDrivers_WithoutServiceArea_ReturnsBadRequest() throws Exception {
         mockMvc.perform(get("/api/drivers/available"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].driverId").value("driver-01"))
-                .andExpect(jsonPath("$[1].driverId").value("driver-02"));
+                .andExpect(status().isBadRequest());
     }
 
     @Test

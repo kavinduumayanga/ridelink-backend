@@ -1,16 +1,33 @@
 package com.ridelink.driver.dto;
 
 import com.ridelink.driver.domain.VehicleType;
+import io.swagger.v3.oas.annotations.media.Schema;
 
+@Schema(description = "Vehicle details response")
 public class VehicleResponse {
 
+    @Schema(description = "Unique vehicle identifier", example = "660c149b14b8a25c12345678")
     private String vehicleId;
+
+    @Schema(description = "Associated driver ID", example = "660c149b14b8a25c87654321")
     private String driverId;
+
+    @Schema(description = "Vehicle license plate number", example = "CAB-1234")
     private String licensePlate;
+
+    @Schema(description = "Vehicle manufacturer/make", example = "Toyota")
     private String make;
+
+    @Schema(description = "Vehicle model", example = "Prius")
     private String model;
+
+    @Schema(description = "Manufacturing year", example = "2020")
     private Integer year;
+
+    @Schema(description = "Vehicle color", example = "White")
     private String color;
+
+    @Schema(description = "Type of vehicle", example = "CAR")
     private VehicleType vehicleType;
 
     public VehicleResponse() {

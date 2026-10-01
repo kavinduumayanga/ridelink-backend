@@ -2,6 +2,8 @@ package com.ridelink.account.controller;
 
 import com.ridelink.account.dto.ErrorResponse;
 import com.ridelink.account.dto.RegisterRequest;
+import com.ridelink.account.dto.UpdateProfileRequest;
+import com.ridelink.account.dto.UpdateStatusRequest;
 import com.ridelink.account.dto.UserResponse;
 import com.ridelink.account.service.AccountService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,7 +15,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -44,5 +50,52 @@ public class AccountController {
     public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
         UserResponse response = accountService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/{userId}")
+    @Operation(summary = "Get user profile", description = "Retrieves account profile for a given user ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Profile retrieved successfully",
+                    content = @Content(schema = @Schema(implementation = UserResponse.class))),
+            @ApiResponse(responseCode = "404", description = "User not found",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    public ResponseEntity<UserResponse> getProfile(@PathVariable("userId") String userId) {
+        UserResponse response = accountService.getProfile(userId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/{userId}")
+    @Operation(summary = "Update user profile", description = "Updates profile fields (firstName, lastName, phone) for a given user ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Profile updated successfully",
+                    content = @Content(schema = @Schema(implementation = UserResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Validation failure",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "User not found",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    public ResponseEntity<UserResponse> updateProfile(
+            @PathVariable("userId") String userId,
+            @Valid @RequestBody UpdateProfileRequest request) {
+        UserResponse response = accountService.updateProfile(userId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{userId}/status")
+    @Operation(summary = "Update account status", description = "Updates account status (ACTIVE or INACTIVE) for a given user ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Account status updated successfully",
+                    content = @Content(schema = @Schema(implementation = UserResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Validation failure",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "User not found",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    public ResponseEntity<UserResponse> updateStatus(
+            @PathVariable("userId") String userId,
+            @Valid @RequestBody UpdateStatusRequest request) {
+        UserResponse response = accountService.updateStatus(userId, request);
+        return ResponseEntity.ok(response);
     }
 }

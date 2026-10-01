@@ -185,4 +185,179 @@ class AccountServiceTest {
         assertEquals("Only PASSENGER and DRIVER registrations are allowed", exception.getMessage());
         verify(userRepository, never()).save(any(User.class));
     }
+
+    @Test
+    @DisplayName("Should retrieve existing user profile by userId")
+    void testGetProfileSuccess() {
+        User user = new User(
+                "665f1a2b3c4d5e6f7a8b9c0d",
+                "Kavindu",
+                "Umayanga",
+                "kavindu@example.com",
+                "$2a$10$encodedPasswordHash",
+                "+94771234567",
+                Role.PASSENGER,
+                AccountStatus.ACTIVE
+        );
+
+        when(userRepository.findById("665f1a2b3c4d5e6f7a8b9c0d")).thenReturn(java.util.Optional.of(user));
+
+        UserResponse response = accountService.getProfile("665f1a2b3c4d5e6f7a8b9c0d");
+
+        assertNotNull(response);
+        assertEquals("665f1a2b3c4d5e6f7a8b9c0d", response.getUserId());
+        assertEquals("Kavindu", response.getFirstName());
+        assertEquals("Umayanga", response.getLastName());
+        assertEquals("kavindu@example.com", response.getEmail());
+        assertEquals("+94771234567", response.getPhone());
+        assertEquals(Role.PASSENGER, response.getRole());
+        assertEquals(AccountStatus.ACTIVE, response.getStatus());
+    }
+
+    @Test
+    @DisplayName("Should throw UserNotFoundException (404) when retrieving non-existent profile")
+    void testGetProfileNotFound() {
+        when(userRepository.findById("nonexistentId")).thenReturn(java.util.Optional.empty());
+
+        assertThrows(
+                com.ridelink.account.exception.UserNotFoundException.class,
+                () -> accountService.getProfile("nonexistentId")
+        );
+    }
+
+    @Test
+    @DisplayName("Should update only permitted profile fields (firstName, lastName, phone) and leave others untouched")
+    void testUpdateProfileSuccess() {
+        User existingUser = new User(
+                "665f1a2b3c4d5e6f7a8b9c0d",
+                "Kavindu",
+                "Umayanga",
+                "kavindu@example.com",
+                "$2a$10$encodedPasswordHash",
+                "+94771234567",
+                Role.PASSENGER,
+                AccountStatus.ACTIVE
+        );
+
+        com.ridelink.account.dto.UpdateProfileRequest updateRequest =
+                new com.ridelink.account.dto.UpdateProfileRequest("KavinduUpdated", "UmayangaUpdated", "+94779999999");
+
+        when(userRepository.findById("665f1a2b3c4d5e6f7a8b9c0d")).thenReturn(java.util.Optional.of(existingUser));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserResponse response = accountService.updateProfile("665f1a2b3c4d5e6f7a8b9c0d", updateRequest);
+
+        assertNotNull(response);
+        assertEquals("665f1a2b3c4d5e6f7a8b9c0d", response.getUserId());
+        assertEquals("KavinduUpdated", response.getFirstName());
+        assertEquals("UmayangaUpdated", response.getLastName());
+        assertEquals("+94779999999", response.getPhone());
+        assertEquals("kavindu@example.com", response.getEmail());
+        assertEquals(Role.PASSENGER, response.getRole());
+        assertEquals(AccountStatus.ACTIVE, response.getStatus());
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        User saved = captor.getValue();
+        assertEquals("$2a$10$encodedPasswordHash", saved.getPasswordHash(), "Password hash must not be changed");
+        assertEquals("kavindu@example.com", saved.getEmail(), "Email must not be changed");
+        assertEquals(Role.PASSENGER, saved.getRole(), "Role must not be changed");
+        assertEquals(AccountStatus.ACTIVE, saved.getStatus(), "Status must not be changed by profile update");
+    }
+
+    @Test
+    @DisplayName("Should throw UserNotFoundException (404) when updating non-existent profile")
+    void testUpdateProfileNotFound() {
+        com.ridelink.account.dto.UpdateProfileRequest updateRequest =
+                new com.ridelink.account.dto.UpdateProfileRequest("First", "Last", "+1234567890");
+
+        when(userRepository.findById("nonexistentId")).thenReturn(java.util.Optional.empty());
+
+        assertThrows(
+                com.ridelink.account.exception.UserNotFoundException.class,
+                () -> accountService.updateProfile("nonexistentId", updateRequest)
+        );
+    }
+
+    @Test
+    @DisplayName("Should update account status from ACTIVE to INACTIVE")
+    void testUpdateStatusActiveToInactive() {
+        User user = new User(
+                "665f1a2b3c4d5e6f7a8b9c0d",
+                "Kavindu",
+                "Umayanga",
+                "kavindu@example.com",
+                "$2a$10$encodedPasswordHash",
+                "+94771234567",
+                Role.PASSENGER,
+                AccountStatus.ACTIVE
+        );
+
+        com.ridelink.account.dto.UpdateStatusRequest statusRequest =
+                new com.ridelink.account.dto.UpdateStatusRequest(AccountStatus.INACTIVE);
+
+        when(userRepository.findById("665f1a2b3c4d5e6f7a8b9c0d")).thenReturn(java.util.Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserResponse response = accountService.updateStatus("665f1a2b3c4d5e6f7a8b9c0d", statusRequest);
+
+        assertNotNull(response);
+        assertEquals(AccountStatus.INACTIVE, response.getStatus());
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertEquals(AccountStatus.INACTIVE, captor.getValue().getStatus());
+    }
+
+    @Test
+    @DisplayName("Should update account status from INACTIVE to ACTIVE")
+    void testUpdateStatusInactiveToActive() {
+        User user = new User(
+                "665f1a2b3c4d5e6f7a8b9c0d",
+                "Kavindu",
+                "Umayanga",
+                "kavindu@example.com",
+                "$2a$10$encodedPasswordHash",
+                "+94771234567",
+                Role.PASSENGER,
+                AccountStatus.INACTIVE
+        );
+
+        com.ridelink.account.dto.UpdateStatusRequest statusRequest =
+                new com.ridelink.account.dto.UpdateStatusRequest(AccountStatus.ACTIVE);
+
+        when(userRepository.findById("665f1a2b3c4d5e6f7a8b9c0d")).thenReturn(java.util.Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserResponse response = accountService.updateStatus("665f1a2b3c4d5e6f7a8b9c0d", statusRequest);
+
+        assertNotNull(response);
+        assertEquals(AccountStatus.ACTIVE, response.getStatus());
+    }
+
+    @Test
+    @DisplayName("Should throw ValidationException when status is null")
+    void testUpdateStatusNull() {
+        com.ridelink.account.dto.UpdateStatusRequest statusRequest =
+                new com.ridelink.account.dto.UpdateStatusRequest(null);
+
+        assertThrows(
+                ValidationException.class,
+                () -> accountService.updateStatus("665f1a2b3c4d5e6f7a8b9c0d", statusRequest)
+        );
+    }
+
+    @Test
+    @DisplayName("Should throw UserNotFoundException (404) when updating status of non-existent user")
+    void testUpdateStatusNotFound() {
+        com.ridelink.account.dto.UpdateStatusRequest statusRequest =
+                new com.ridelink.account.dto.UpdateStatusRequest(AccountStatus.INACTIVE);
+
+        when(userRepository.findById("nonexistentId")).thenReturn(java.util.Optional.empty());
+
+        assertThrows(
+                com.ridelink.account.exception.UserNotFoundException.class,
+                () -> accountService.updateStatus("nonexistentId", statusRequest)
+        );
+    }
 }

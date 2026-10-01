@@ -4,8 +4,11 @@ import com.ridelink.account.domain.AccountStatus;
 import com.ridelink.account.domain.Role;
 import com.ridelink.account.domain.User;
 import com.ridelink.account.dto.RegisterRequest;
+import com.ridelink.account.dto.UpdateProfileRequest;
+import com.ridelink.account.dto.UpdateStatusRequest;
 import com.ridelink.account.dto.UserResponse;
 import com.ridelink.account.exception.DuplicateEmailException;
+import com.ridelink.account.exception.UserNotFoundException;
 import com.ridelink.account.exception.ValidationException;
 import com.ridelink.account.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -49,4 +52,40 @@ public class AccountService {
 
         return UserResponse.fromEntity(savedUser);
     }
+
+    public UserResponse getProfile(String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+
+        return UserResponse.fromEntity(user);
+    }
+
+    public UserResponse updateProfile(String userId, UpdateProfileRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+
+        user.setFirstName(request.getFirstName().trim());
+        user.setLastName(request.getLastName().trim());
+        user.setPhone(request.getPhone().trim());
+
+        User updatedUser = userRepository.save(user);
+
+        return UserResponse.fromEntity(updatedUser);
+    }
+
+    public UserResponse updateStatus(String userId, UpdateStatusRequest request) {
+        if (request.getStatus() == null) {
+            throw new ValidationException("Status is required");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+
+        user.setStatus(request.getStatus());
+
+        User updatedUser = userRepository.save(user);
+
+        return UserResponse.fromEntity(updatedUser);
+    }
 }
+

@@ -17,6 +17,13 @@ target/
 logs/
 .run/
 
+# Temporary and editor backup files
+*.tmp
+*.bak
+*.swp
+*.swo
+*~
+
 # IDE files
 .idea/
 *.iml

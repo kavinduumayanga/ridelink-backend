@@ -7,7 +7,6 @@ import com.ridelink.payment.dto.PaymentRequest;
 import com.ridelink.payment.dto.PaymentResponse;
 import com.ridelink.payment.dto.ReceiptResponse;
 import com.ridelink.payment.exception.ConflictException;
-import com.ridelink.payment.exception.InvalidPaymentStateException;
 import com.ridelink.payment.exception.ResourceNotFoundException;
 import com.ridelink.payment.repository.FareRepository;
 import com.ridelink.payment.repository.PaymentRepository;
@@ -50,9 +49,12 @@ public class PaymentServiceImpl implements PaymentService {
         payment.setFareId(request.getFareId());
         payment.setAmount(paymentAmount.doubleValue());
         payment.setPaymentMethod(request.getPaymentMethod());
-        payment.setPaymentStatus(PaymentStatus.PAID);
+        PaymentStatus paymentStatus = request.isSimulateFailure()
+                ? PaymentStatus.FAILED
+                : PaymentStatus.PAID;
+        payment.setPaymentStatus(paymentStatus);
         Instant now = Instant.now();
-        payment.setPaidAt(now);
+        payment.setPaidAt(paymentStatus == PaymentStatus.PAID ? now : null);
         payment.setCreatedAt(now);
 
         Payment savedPayment = paymentRepository.save(payment);
@@ -101,7 +103,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Payment not found with id: " + paymentId));
 
         if (payment.getPaymentStatus() != PaymentStatus.PAID) {
-            throw new InvalidPaymentStateException("Receipt is only available for completed (PAID) payments");
+            throw new ConflictException("Receipt is only available for completed (PAID) payments");
         }
 
         Fare fare = fareRepository.findById(payment.getFareId())

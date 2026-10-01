@@ -9,7 +9,6 @@ import com.ridelink.payment.dto.PaymentResponse;
 import com.ridelink.payment.dto.ReceiptResponse;
 import com.ridelink.payment.exception.ConflictException;
 import com.ridelink.payment.exception.GlobalExceptionHandler;
-import com.ridelink.payment.exception.InvalidPaymentStateException;
 import com.ridelink.payment.exception.ResourceNotFoundException;
 import com.ridelink.payment.service.PaymentService;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +25,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.time.Instant;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -54,17 +54,24 @@ class PaymentControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/payments should return 201 Created with PaymentResponse")
+    @DisplayName("POST /api/payments with omitted simulateFailure returns PAID")
     void testCreatePaymentSuccess() throws Exception {
-        PaymentRequest request = new PaymentRequest("995c3d4e5f6a7b8c9d0e1f2a", "bb6e5f6a7b8c9d0e1f2a3b4c", 860.00, PaymentMethod.CASH);
         Instant now = Instant.parse("2026-09-27T17:30:00.000Z");
         PaymentResponse response = new PaymentResponse("cc7f6a7b8c9d0e1f2a3b4c5d", "995c3d4e5f6a7b8c9d0e1f2a", "bb6e5f6a7b8c9d0e1f2a3b4c", 860.00, PaymentMethod.CASH, PaymentStatus.PAID, now);
 
-        when(paymentService.createPayment(any(PaymentRequest.class))).thenReturn(response);
+        when(paymentService.createPayment(argThat(request -> !request.isSimulateFailure())))
+                .thenReturn(response);
 
         mockMvc.perform(post("/api/payments")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content("""
+                                {
+                                  "rideId": "995c3d4e5f6a7b8c9d0e1f2a",
+                                  "fareId": "bb6e5f6a7b8c9d0e1f2a3b4c",
+                                  "amount": 860.00,
+                                  "paymentMethod": "CASH"
+                                }
+                                """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.paymentId").value("cc7f6a7b8c9d0e1f2a3b4c5d"))
                 .andExpect(jsonPath("$.rideId").value("995c3d4e5f6a7b8c9d0e1f2a"))
@@ -72,6 +79,26 @@ class PaymentControllerTest {
                 .andExpect(jsonPath("$.amount").value(860.00))
                 .andExpect(jsonPath("$.paymentMethod").value("CASH"))
                 .andExpect(jsonPath("$.paymentStatus").value("PAID"));
+    }
+
+    @Test
+    @DisplayName("POST /api/payments with simulateFailure=true returns persisted FAILED status")
+    void testCreatePaymentSimulatedFailure() throws Exception {
+        PaymentRequest request = new PaymentRequest(
+                "ride-1", "fare-1", 860.00, PaymentMethod.CARD_SIMULATED, true);
+        PaymentResponse response = new PaymentResponse(
+                "failed-payment-1", "ride-1", "fare-1", 860.00,
+                PaymentMethod.CARD_SIMULATED, PaymentStatus.FAILED, null);
+
+        when(paymentService.createPayment(any(PaymentRequest.class))).thenReturn(response);
+
+        mockMvc.perform(post("/api/payments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.paymentId").value("failed-payment-1"))
+                .andExpect(jsonPath("$.paymentStatus").value("FAILED"))
+                .andExpect(jsonPath("$.paidAt").doesNotExist());
     }
 
     @Test
@@ -114,6 +141,21 @@ class PaymentControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.paymentId").value("payment-123"))
                 .andExpect(jsonPath("$.paymentStatus").value("PAID"));
+    }
+
+    @Test
+    @DisplayName("GET /api/payments/{paymentId} returns persisted FAILED status")
+    void testGetFailedPaymentByIdSuccess() throws Exception {
+        PaymentResponse response = new PaymentResponse(
+                "failed-payment-1", "ride-1", "fare-1", 860.0,
+                PaymentMethod.CARD_SIMULATED, PaymentStatus.FAILED, null);
+
+        when(paymentService.getPaymentById("failed-payment-1")).thenReturn(response);
+
+        mockMvc.perform(get("/api/payments/failed-payment-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paymentStatus").value("FAILED"))
+                .andExpect(jsonPath("$.paidAt").doesNotExist());
     }
 
     @Test
@@ -191,14 +233,14 @@ class PaymentControllerTest {
     }
 
     @Test
-    @DisplayName("GET /api/payments/{paymentId}/receipt for failed payment should return 400 VALIDATION_ERROR")
+    @DisplayName("GET /api/payments/{paymentId}/receipt for failed payment returns 409 CONFLICT")
     void testGetReceiptForFailedPayment() throws Exception {
         when(paymentService.getReceiptByPaymentId("failed-payment-id"))
-                .thenThrow(new InvalidPaymentStateException("Receipt is only available for completed (PAID) payments"));
+                .thenThrow(new ConflictException("Receipt is only available for completed (PAID) payments"));
 
         mockMvc.perform(get("/api/payments/failed-payment-id/receipt"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value(400))
-                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.error").value("CONFLICT"));
     }
 }

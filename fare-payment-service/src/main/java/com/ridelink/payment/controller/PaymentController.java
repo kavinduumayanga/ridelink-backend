@@ -96,7 +96,7 @@ public class PaymentController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Receipt details retrieved successfully",
                     content = @Content(schema = @Schema(implementation = ReceiptResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Payment is not in completed (PAID) state",
+            @ApiResponse(responseCode = "409", description = "Payment is not in completed (PAID) state",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "401", description = "Missing or invalid JWT token",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),

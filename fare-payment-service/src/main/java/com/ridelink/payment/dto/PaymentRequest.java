@@ -26,6 +26,9 @@ public class PaymentRequest {
     @Schema(description = "Payment method (CASH or CARD_SIMULATED)", example = "CASH", requiredMode = Schema.RequiredMode.REQUIRED)
     private PaymentMethod paymentMethod;
 
+    @Schema(description = "Deterministically simulate a failed payment; defaults to false", example = "false", defaultValue = "false")
+    private boolean simulateFailure;
+
     public PaymentRequest() {
     }
 
@@ -34,6 +37,11 @@ public class PaymentRequest {
         this.fareId = fareId;
         this.amount = amount;
         this.paymentMethod = paymentMethod;
+    }
+
+    public PaymentRequest(String rideId, String fareId, Double amount, PaymentMethod paymentMethod, boolean simulateFailure) {
+        this(rideId, fareId, amount, paymentMethod);
+        this.simulateFailure = simulateFailure;
     }
 
     public String getRideId() {
@@ -66,5 +74,13 @@ public class PaymentRequest {
 
     public void setPaymentMethod(PaymentMethod paymentMethod) {
         this.paymentMethod = paymentMethod;
+    }
+
+    public boolean isSimulateFailure() {
+        return simulateFailure;
+    }
+
+    public void setSimulateFailure(boolean simulateFailure) {
+        this.simulateFailure = simulateFailure;
     }
 }

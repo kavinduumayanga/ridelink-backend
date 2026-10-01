@@ -9,7 +9,6 @@ import com.ridelink.payment.dto.PaymentRequest;
 import com.ridelink.payment.dto.PaymentResponse;
 import com.ridelink.payment.dto.ReceiptResponse;
 import com.ridelink.payment.exception.ConflictException;
-import com.ridelink.payment.exception.InvalidPaymentStateException;
 import com.ridelink.payment.exception.ResourceNotFoundException;
 import com.ridelink.payment.repository.FareRepository;
 import com.ridelink.payment.repository.PaymentRepository;
@@ -80,7 +79,7 @@ class PaymentServiceImplTest {
     @Test
     @DisplayName("Should successfully create simulated CARD_SIMULATED payment with PAID status")
     void testCreatePaymentCardSimulatedSuccess() {
-        PaymentRequest request = new PaymentRequest("ride-123", "fare-456", 500.00, PaymentMethod.CARD_SIMULATED);
+        PaymentRequest request = new PaymentRequest("ride-123", "fare-456", 500.00, PaymentMethod.CARD_SIMULATED, false);
         Fare mockFare = new Fare("fare-456", "ride-123", FareType.FINAL, 6.0, 200.0, 50.0, 500.0, Instant.now());
 
         when(paymentRepository.findByRideId("ride-123")).thenReturn(Optional.empty());
@@ -129,11 +128,12 @@ class PaymentServiceImplTest {
     }
 
     @Test
-    @DisplayName("Should support simulated failed payment with FAILED status and null paidAt")
+    @DisplayName("simulateFailure=true persists FAILED status and null paidAt")
     void testCreateFailedPayment() {
-        PaymentRequest request = new PaymentRequest("ride-123", "fare-456", 860.00, PaymentMethod.CARD_SIMULATED);
+        PaymentRequest request = new PaymentRequest("ride-123", "fare-456", 860.00, PaymentMethod.CARD_SIMULATED, true);
         Fare mockFare = new Fare("fare-456", "ride-123", FareType.FINAL, 13.2, 200.0, 50.0, 860.0, Instant.now());
 
+        when(paymentRepository.findByRideId("ride-123")).thenReturn(Optional.empty());
         when(fareRepository.findById("fare-456")).thenReturn(Optional.of(mockFare));
         when(paymentRepository.save(any(Payment.class))).thenAnswer(invocation -> {
             Payment p = invocation.getArgument(0);
@@ -141,7 +141,7 @@ class PaymentServiceImplTest {
             return p;
         });
 
-        PaymentResponse response = paymentService.createFailedPayment(request);
+        PaymentResponse response = paymentService.createPayment(request);
 
         assertNotNull(response);
         assertEquals("failed-payment-123", response.getPaymentId());
@@ -152,6 +152,19 @@ class PaymentServiceImplTest {
         verify(paymentRepository).save(captor.capture());
         assertEquals(PaymentStatus.FAILED, captor.getValue().getPaymentStatus());
         assertNull(captor.getValue().getPaidAt());
+    }
+
+    @Test
+    @DisplayName("simulateFailure=true still rejects a nonexistent fare")
+    void testCreateFailedPaymentFareNotFound() {
+        PaymentRequest request = new PaymentRequest(
+                "ride-123", "fare-not-found", 860.00, PaymentMethod.CARD_SIMULATED, true);
+
+        when(paymentRepository.findByRideId("ride-123")).thenReturn(Optional.empty());
+        when(fareRepository.findById("fare-not-found")).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> paymentService.createPayment(request));
+        verify(paymentRepository, never()).save(any());
     }
 
     @Test
@@ -188,6 +201,22 @@ class PaymentServiceImplTest {
         assertEquals("payment-123", response.getPaymentId());
         assertEquals("ride-123", response.getRideId());
         assertEquals(PaymentStatus.PAID, response.getPaymentStatus());
+    }
+
+    @Test
+    @DisplayName("Should retrieve a persisted FAILED payment without reporting it as PAID")
+    void testGetFailedPaymentByIdSuccess() {
+        Payment payment = new Payment(
+                "failed-payment-123", "ride-123", "fare-456", 860.0,
+                PaymentMethod.CARD_SIMULATED, PaymentStatus.FAILED, null, Instant.now());
+
+        when(paymentRepository.findById("failed-payment-123")).thenReturn(Optional.of(payment));
+
+        PaymentResponse response = paymentService.getPaymentById("failed-payment-123");
+
+        assertEquals(PaymentStatus.FAILED, response.getPaymentStatus());
+        assertNotEquals(PaymentStatus.PAID, response.getPaymentStatus());
+        assertNull(response.getPaidAt());
     }
 
     @Test
@@ -256,7 +285,7 @@ class PaymentServiceImplTest {
 
         when(paymentRepository.findById("payment-123")).thenReturn(Optional.of(failedPayment));
 
-        assertThrows(InvalidPaymentStateException.class, () ->
+        assertThrows(ConflictException.class, () ->
                 paymentService.getReceiptByPaymentId("payment-123")
         );
     }

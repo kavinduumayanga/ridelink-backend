@@ -162,7 +162,7 @@ Creates a new PASSENGER or DRIVER account.
 
 > `passwordHash` is **never** returned in any response.
 
-**Error codes:** `400` duplicate email or validation failure.
+**Error codes:** `400` validation failure, `409` duplicate email.
 
 ---
 
@@ -579,16 +579,18 @@ Creates a simulated payment for a completed ride.
   "rideId": "995c3d4e5f6a7b8c9d0e1f2a",
   "fareId": "bb6e5f6a7b8c9d0e1f2a3b4c",
   "amount": 860.00,
-  "paymentMethod": "CASH"
+  "paymentMethod": "CASH",
+  "simulateFailure": false
 }
 ```
 
-| Field           | Type   | Required | Validation                 |
-| --------------- | ------ | -------- | -------------------------- |
-| `rideId`        | String | Yes      | Non-blank                  |
-| `fareId`        | String | Yes      | Non-blank                  |
-| `amount`        | Double | Yes      | > 0                        |
-| `paymentMethod` | String | Yes      | `CASH` or `CARD_SIMULATED` |
+| Field             | Type    | Required | Validation/Default                       |
+| ----------------- | ------- | -------- | ---------------------------------------- |
+| `rideId`          | String  | Yes      | Non-blank                                |
+| `fareId`          | String  | Yes      | Non-blank; must identify an existing fare |
+| `amount`          | Double  | Yes      | > 0                                      |
+| `paymentMethod`   | String  | Yes      | `CASH` or `CARD_SIMULATED`               |
+| `simulateFailure` | Boolean | No       | Defaults to `false`                      |
 
 **201 Created:**
 
@@ -604,9 +606,22 @@ Creates a simulated payment for a completed ride.
 }
 ```
 
-> Simulated: CASH immediately becomes `PAID`; `CARD_SIMULATED` immediately becomes `PAID`. No real gateway.
+Simulation rules:
 
-**Error codes:** `400`.
+- If `simulateFailure` is omitted or `false`, the payment is persisted as `PAID` and `paidAt` is populated.
+- If `simulateFailure` is `true`, the payment is persisted as `FAILED`, is never reported as `PAID`, and `paidAt` is `null`.
+- Normal request and referenced-fare validation applies in both cases. No real payment gateway is used.
+
+A simulated failure returns `201 Created` with the same response shape, except:
+
+```json
+{
+  "paymentStatus": "FAILED",
+  "paidAt": null
+}
+```
+
+**Error codes:** `400` invalid request/input, `401` missing or invalid JWT, `404` referenced `fareId` not found, `409` an existing payment conflicts with creation.
 
 ---
 
@@ -664,7 +679,9 @@ Returns a receipt summary combining fare and payment data.
 }
 ```
 
-**Error codes:** `401`, `404`.
+For a `FAILED` payment, a successful receipt is not generated. The endpoint returns `409 CONFLICT` with a clear message that receipts are available only for `PAID` payments.
+
+**Error codes:** `401`, `404`, `409` payment is not `PAID`.
 
 ---
 

@@ -1,5 +1,7 @@
 # RideLink Backend
 
+[![CI](https://github.com/kavinduumayanga/ridelink-backend/actions/workflows/ci.yml/badge.svg)](https://github.com/kavinduumayanga/ridelink-backend/actions/workflows/ci.yml)
+
 RideLink is a university application-development project for a ride-management platform. This repository contains the backend only, organized as four independently executable Spring Boot microservices that communicate through REST/JSON.
 
 ## Services and ownership
@@ -31,4 +33,3 @@ Each service owns its MongoDB database. A service must never read from or write 
 - Access to four independently configured MongoDB databases
 
 Copy `.env.example` to a local `.env` and supply environment-specific values without committing that file. Detailed setup, API, and operational instructions will be added incrementally as the project develops.
-

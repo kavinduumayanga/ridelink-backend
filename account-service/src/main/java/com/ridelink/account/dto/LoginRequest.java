@@ -1,15 +1,19 @@
 package com.ridelink.account.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
+@Schema(description = "User login credentials payload")
 public class LoginRequest {
 
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
+    @Schema(description = "User's registered email address", example = "kavindu@example.com", requiredMode = Schema.RequiredMode.REQUIRED)
     private String email;
 
     @NotBlank(message = "Password is required")
+    @Schema(description = "User password", example = "secureP@ss1", requiredMode = Schema.RequiredMode.REQUIRED)
     private String password;
 
     public LoginRequest() {

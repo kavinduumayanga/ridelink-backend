@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/accounts")
-@Tag(name = "Authentication", description = "Authentication and token issuance endpoints")
+@Tag(name = "Authentication", description = "Authentication and JWT issuance endpoints")
 public class AuthController {
 
     private final AuthService authService;
@@ -29,13 +29,13 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    @Operation(summary = "User login", description = "Authenticates user credentials and returns a JWT token")
+    @Operation(summary = "User login", description = "Public endpoint to authenticate user credentials and issue a JWT token")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Successfully authenticated",
+            @ApiResponse(responseCode = "200", description = "Successfully authenticated and token issued",
                     content = @Content(schema = @Schema(implementation = LoginResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Validation failure",
+            @ApiResponse(responseCode = "400", description = "Validation failure (missing email or password)",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "401", description = "Invalid credentials",
+            @ApiResponse(responseCode = "401", description = "Invalid email or password",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "403", description = "Account is inactive",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))

@@ -216,6 +216,16 @@ class PaymentServiceImplTest {
     }
 
     @Test
+    @DisplayName("Should throw ResourceNotFoundException when payment for rideId not found")
+    void testGetPaymentByRideIdNotFound() {
+        when(paymentRepository.findByRideId("non-existent-ride")).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () ->
+                paymentService.getPaymentByRideId("non-existent-ride")
+        );
+    }
+
+    @Test
     @DisplayName("Should retrieve receipt for valid PAID payment")
     void testGetReceiptSuccess() {
         Instant paidTime = Instant.now();
@@ -247,6 +257,29 @@ class PaymentServiceImplTest {
         when(paymentRepository.findById("payment-123")).thenReturn(Optional.of(failedPayment));
 
         assertThrows(InvalidPaymentStateException.class, () ->
+                paymentService.getReceiptByPaymentId("payment-123")
+        );
+    }
+
+    @Test
+    @DisplayName("Should throw ResourceNotFoundException when payment not found for receipt")
+    void testGetReceiptPaymentNotFoundThrowsException() {
+        when(paymentRepository.findById("non-existent-payment")).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () ->
+                paymentService.getReceiptByPaymentId("non-existent-payment")
+        );
+    }
+
+    @Test
+    @DisplayName("Should throw ResourceNotFoundException when associated fare not found for receipt")
+    void testGetReceiptFareNotFoundThrowsException() {
+        Payment payment = new Payment("payment-123", "ride-123", "missing-fare", 860.0, PaymentMethod.CASH, PaymentStatus.PAID, Instant.now(), Instant.now());
+
+        when(paymentRepository.findById("payment-123")).thenReturn(Optional.of(payment));
+        when(fareRepository.findById("missing-fare")).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () ->
                 paymentService.getReceiptByPaymentId("payment-123")
         );
     }

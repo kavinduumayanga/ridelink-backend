@@ -162,6 +162,35 @@ class PaymentControllerTest {
     }
 
     @Test
+    @DisplayName("POST /api/payments with non-existent fareId should return 404 NOT_FOUND")
+    void testCreatePaymentFareNotFound() throws Exception {
+        PaymentRequest request = new PaymentRequest("ride-1", "fare-non-existent", 860.0, PaymentMethod.CASH);
+
+        when(paymentService.createPayment(any(PaymentRequest.class)))
+                .thenThrow(new ResourceNotFoundException("Fare not found with id: fare-non-existent"));
+
+        mockMvc.perform(post("/api/payments")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.error").value("NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Fare not found with id: fare-non-existent"));
+    }
+
+    @Test
+    @DisplayName("GET /api/payments/ride/{rideId} not found should return 404 NOT_FOUND")
+    void testGetPaymentByRideIdNotFound() throws Exception {
+        when(paymentService.getPaymentByRideId("missing-ride-id"))
+                .thenThrow(new ResourceNotFoundException("Payment not found for ride id: missing-ride-id"));
+
+        mockMvc.perform(get("/api/payments/ride/missing-ride-id"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.error").value("NOT_FOUND"));
+    }
+
+    @Test
     @DisplayName("GET /api/payments/{paymentId}/receipt for failed payment should return 400 VALIDATION_ERROR")
     void testGetReceiptForFailedPayment() throws Exception {
         when(paymentService.getReceiptByPaymentId("failed-payment-id"))

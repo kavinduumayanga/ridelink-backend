@@ -4,19 +4,38 @@ import com.ridelink.payment.domain.Fare;
 import com.ridelink.payment.domain.Payment;
 import com.ridelink.payment.domain.PaymentMethod;
 import com.ridelink.payment.domain.PaymentStatus;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
 
+@Schema(description = "Response DTO representing combined ride receipt with fare and payment breakdown")
 public class ReceiptResponse {
 
+    @Schema(description = "Receipt ID (matches Payment ID)", example = "cc7f6a7b8c9d0e1f2a3b4c5d")
     private String receiptId;
+
+    @Schema(description = "MongoDB ride ID", example = "995c3d4e5f6a7b8c9d0e1f2a")
     private String rideId;
+
+    @Schema(description = "Actual ride distance in kilometers", example = "13.2")
     private Double distanceKm;
+
+    @Schema(description = "Base fare in LKR", example = "200.00")
     private Double baseFare;
+
+    @Schema(description = "Rate per kilometer in LKR", example = "50.00")
     private Double ratePerKm;
+
+    @Schema(description = "Total fare charged in LKR", example = "860.00")
     private Double totalFare;
+
+    @Schema(description = "Payment method used", example = "CASH")
     private PaymentMethod paymentMethod;
+
+    @Schema(description = "Payment status (PAID)", example = "PAID")
     private PaymentStatus paymentStatus;
+
+    @Schema(description = "Timestamp when payment was processed", example = "2026-09-27T17:30:00.000+00:00")
     private Instant paidAt;
 
     public ReceiptResponse() {

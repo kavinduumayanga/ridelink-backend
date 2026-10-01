@@ -21,9 +21,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
@@ -41,13 +41,13 @@ class SecurityIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private PaymentService paymentService;
 
-    @MockBean
+    @MockitoBean
     private FareCalculationService fareCalculationService;
 
-    @MockBean
+    @MockitoBean
     private FareProperties fareProperties;
 
     private ObjectMapper objectMapper;
@@ -235,5 +235,39 @@ class SecurityIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.fareId").value("fare-2"))
                 .andExpect(jsonPath("$.totalFare").value(860.0));
+    }
+
+    @Test
+    @DisplayName("PASSENGER role can retrieve payment by ride ID")
+    void testPassengerCanGetPaymentByRideId() throws Exception {
+        String passengerToken = JwtTestHelper.generateToken("passenger-123", "PASSENGER");
+        PaymentResponse response = new PaymentResponse("payment-1", "ride-123", "fare-1", 860.0, PaymentMethod.CASH, PaymentStatus.PAID, Instant.now());
+
+        when(paymentService.getPaymentByRideId("ride-123")).thenReturn(response);
+
+        mockMvc.perform(get("/api/payments/ride/ride-123")
+                        .header("Authorization", "Bearer " + passengerToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rideId").value("ride-123"));
+    }
+
+    @Test
+    @DisplayName("DRIVER role is denied access to retrieve payment by ride ID (403 FORBIDDEN)")
+    void testDriverDeniedGetPaymentByRideId() throws Exception {
+        String driverToken = JwtTestHelper.generateToken("driver-123", "DRIVER");
+
+        mockMvc.perform(get("/api/payments/ride/ride-123")
+                        .header("Authorization", "Bearer " + driverToken))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.error").value("FORBIDDEN"));
+    }
+
+    @Test
+    @DisplayName("Swagger and OpenAPI documentation endpoints are permitted without authentication by security filter")
+    void testSwaggerEndpointsAccessibleWithoutJwt() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().is(org.hamcrest.Matchers.not(401)))
+                .andExpect(status().is(org.hamcrest.Matchers.not(403)));
     }
 }
